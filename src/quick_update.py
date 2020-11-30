@@ -7,10 +7,11 @@ Hugo Zaragoza, 2020.
 
 ## COMMANDS: see main()
 
-## INPUT FILE:
-Lexical rules:
+## INPUT FILE FORMAT:
+  *
   * Dates should be indicated in a line: |#2020-01-01
-
+  * (Dates should be incremental or decremental)
+  *
   * Updates are given in a line: |Your task name:: your sub task name:: your update
   * You can add or remove sub task levels at any line, QuickUpdate will keep track of all.
 
@@ -187,6 +188,7 @@ def parse_line(line, aliases, urls, posfixes, order):
 
 def parse_file(string):
     date = None
+    date_ascending = None
     linenum = 0
     data = []
     todos = []
@@ -201,8 +203,21 @@ def parse_file(string):
         linenum += 1
         date_m = re.search(date_rex, line)
         if date_m:
-            date = "-".join([date_m.group(x) for x in range(1, 4)])
-            date = datetime.strptime(date, "%Y-%m-%d")
+            new_date = datetime.strptime(
+                "-".join([date_m.group(x) for x in range(1, 4)]), "%Y-%m-%d"
+            )
+            if date:
+                if not date_ascending:
+                    date_ascending = new_date > date
+                else:
+                    if (date_ascending and new_date <= date) or (
+                        not date_ascending and new_date >= date
+                    ):
+                        myassert(
+                            new_date > date,
+                            f"PARSE ERROR (LINE: {linenum}) Dates can be incremental or decremental but not both!",
+                        )
+            date = new_date
             continue
         elif line.startswith("#TODO"):
             todos.append(line)
@@ -214,16 +229,18 @@ def parse_file(string):
         elif line.startswith("#") or blank_rex.match(line):
             continue
 
-        myassert(
-            date,
-            f"PARSE ERROR (LINE: {linenum}) No date line present before the first update!",
-        )
         try:
             res = parse_line(line, keys, urls, posfixes, order)
         except SyntaxError:
             myassert(False, f"PARSE ERROR (LINE: {linenum}):\n{line}")
         if res:
             task, update, done = res
+            if update:
+                myassert(
+                    date,
+                    f"PARSE ERROR (LINE: {linenum}) No date line present before the first update!",
+                )
+
             data.append([date, task, update, done])
 
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
