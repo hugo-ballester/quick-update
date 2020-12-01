@@ -50,7 +50,7 @@ def test_shorthands(line, des_update):
             {},
         ),
         (
-            "[Alias two] Task one:: task two:: ::POSFIX:blah blah:",
+            "[Alias two] Task one:: task two:: POSFIX:blah blah:",
             {"Alias two": task_join(("Task one", "task two"))},
             {},
             {task_join(("Task one", "task two")): "blah blah"},
@@ -64,14 +64,14 @@ def test_shorthands(line, des_update):
             {},
         ),
         (
-            "[Alias one] Task one:: ::POSFIX:my posfix here:",
+            "[Alias one] Task one:: POSFIX:my posfix here:",
             {"Alias one": "Task one"},
             {},
             {"Task one": "my posfix here"},
             {},
         ),
         (
-            "[Alias one] Task one:: http://test.com ::POSFIX:my posfix here: ::ORDER:z:",
+            "[Alias one] Task one:: http://test.com POSFIX:my posfix here: ORDER:z:",
             {"Alias one": "Task one"},
             {"Task one": "http://test.com"},
             {"Task one": "my posfix here"},
@@ -111,7 +111,7 @@ def test_parse_date(file_content, des_date):
     [
         ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "update"),
         (
-            "# 2001-01-01\n[T1] task1:: ::POSFIX:my posfix!:\nT1:: update",
+            "# 2001-01-01\n[T1] task1:: POSFIX:my posfix!:\nT1:: update",
             "task1",
             "update my posfix!",
         ),

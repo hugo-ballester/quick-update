@@ -10,11 +10,11 @@ from quick_update import *
             ["BBBB", "Task1"],
         ),
         (
-            "# 2001-01-01\n[T1] Task1:: ::ORDER:0:\nT1:: update t1\nBBBB:: update aaa",
+            "# 2001-01-01\n[T1] Task1:: ORDER:0:\nT1:: update t1\nBBBB:: update aaa",
             ["Task1", "BBBB"],
         ),
         (
-            "# 2001-01-01\n[T1] Task1:: ::ORDER:z:\nT1:: update t1\nWhat:: update aaa",
+            "# 2001-01-01\n[T1] Task1:: ORDER:z:\nT1:: update t1\nWhat:: update aaa",
             ["What", "Task1"],
         ),
     ],

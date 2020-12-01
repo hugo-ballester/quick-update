@@ -17,7 +17,7 @@ Hugo Zaragoza, 2020.
 
   * A task is marked as done by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
 
-  * You can define aliases for tasks as follows:  |Task name:: sub task name:: [YOUR_KEY] OPTIONAL_URL ::POSFIX:OPTIONAL_POSFIX: ::ORDER:your_prefix_string:
+  * You can define aliases for tasks as follows:  |Task name:: sub task name:: [YOUR_KEY] OPTIONAL_URL POSFIX:OPTIONAL_POSFIX: ::ORDER:your_prefix_string:
   *   in that case:
   *      * you can use the alias instead of the task names: |YOUR_KEY:: your update
   *      * if you define a url, the task will be linked to URL in reports
@@ -32,7 +32,7 @@ Hugo Zaragoza, 2020.
 Example update file:
 
   |Project-X:: First Proposal:: [XFP]
-  |Management:: 1:1s:: [11] ::POSFIX:(DONE): ::ORDER:zzz
+  |Management:: 1:1s:: [11] POSFIX:(DONE): ::ORDER:zzz
   |
   |#2020-01-01
   |XFP:: discussed with Phoebe
@@ -122,7 +122,7 @@ line_parser_rex = re.compile(
 )  # need on-greedy +? so update does not swallow DONE
 # Task [Key] posfix # no update yet
 alias_rex = re.compile(
-    f"(?i)^\[(?P<key>.+)?\] (?P<task>.+){TASK_SEPARATOR} *(?P<url>{regex_url})?(?: ::POSFIX:(?P<posfix>[^:]+):)?(?: ::ORDER:(?P<order>[^:]+):)?$"
+    f"(?i)^\[(?P<key>.+)?\] (?P<task>.+){TASK_SEPARATOR} *(?P<url>{regex_url})?(?: POSFIX:(?P<posfix>[^:]+):)?(?: ORDER:(?P<order>[^:]+):)?$"
 )
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\s]+):(?P<url>{regex_url})")
@@ -403,12 +403,28 @@ def report_last_week(df):
     startdate = date + timedelta(days=-date.weekday(), weeks=-1)
     enddate = startdate + timedelta(days=6)
     weekno = startdate.isocalendar()[1]
-
-    df = df[(df.Date >= str(startdate.date())) & (df.Date <= str(enddate.date()))]
-
     datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
-    ret = title_str(f"Week #{weekno}: {datestr}\n")
 
+    ret = title_str(f"Last Week #{weekno}: {datestr}\n\n")
+    ret += report_span(df, startdate, enddate)
+    return ret
+
+
+def report_this_week(df):
+    date = datetime.now()
+    startdate = date + timedelta(days=-date.weekday())
+    enddate = startdate + timedelta(days=6)
+    weekno = startdate.isocalendar()[1]
+    datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
+
+    ret = title_str(f"This Week #{weekno}: {datestr}\n\n")
+    ret += report_span(df, startdate, enddate)
+    return ret
+
+
+def report_span(df, startdate, enddate):
+    df = df[(df.Date >= str(startdate.date())) & (df.Date <= str(enddate.date()))]
+    ret = ""
     df = df.groupby(["Order", "Task"])  # groupby order first to preserve right order
     SEP = " : "
     for (_, name), group in df:
@@ -524,7 +540,7 @@ def main():
     pd.set_option("display.max_colwidth", -1)
 
     if args["commands"] == ["all"]:
-        args["commands"] = ["last", "open", "week", "tasks", "todo"]
+        args["commands"] = ["last", "open", "lastweek", "thisweek", "tasks", "todo"]
 
     for command in args["commands"]:
 
@@ -534,6 +550,7 @@ def main():
         elif command == "all":
             print(report_last_days(df))
             print(report_open_tasks(df))
+            print(report_this_week(df))
             print(report_last_week(df))
             print(report_tasks(df, posfix))
             print(report_tasks(df))
@@ -541,8 +558,11 @@ def main():
         elif command == "edit":
             os.system(f"open {file}")
 
-        elif command == "last":
-            print(report_last_days(df))
+        elif command == "lastweek":
+            print(report_last_week(df))
+
+        elif command == "thisweek":
+            print(report_this_week(df))
 
         elif command == "open":
             print(report_open_tasks(df, title=bold("OPEN TASKS")))
