@@ -50,7 +50,7 @@ def test_shorthands(line, des_update):
             {},
         ),
         (
-            "[Alias two] Task one:: task two:: POSFIX:blah blah:",
+            "[Alias two]    Task one:: task two:: POSFIX:blah blah:",
             {"Alias two": task_join(("Task one", "task two"))},
             {},
             {task_join(("Task one", "task two")): "blah blah"},

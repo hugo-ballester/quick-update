@@ -31,8 +31,8 @@ Hugo Zaragoza, 2020.
 
 Example update file:
 
-  |Project-X:: First Proposal:: [XFP]
-  |Management:: 1:1s:: [11] POSFIX:(DONE): ::ORDER:zzz
+  |[XFP] Project-X:: First Proposal::
+  |[11]  Management:: 1:1s:: POSFIX:(DONE): ORDER:zzz:
   |
   |#2020-01-01
   |XFP:: discussed with Phoebe
@@ -41,15 +41,13 @@ Example update file:
   |Project-X:: Recruiting:: contacted 20 canidates
   |
   |#2020-01-02
+  |# comment line (will be ignored)
   |Another Top Level Task:: shipped documentation SIM:https://blah.com (.)
   |11:: met with Rachel
   |
   |#TODO write-up doc about a dog
   |#TODO think about new directions:
-  |#- north
-  |#- east
-  |#- south and others
-
+  
 
 ## DEPLOY
 
@@ -118,11 +116,11 @@ regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()
 done_exp = "|".join([re.escape(x) for x in DONE_POSFIX])
 done_exp = "(?P<done> " + done_exp + ")?"
 line_parser_rex = re.compile(
-    f"^(?P<task>[^][]+){TASK_SEPARATOR} (?P<update>.+?){done_exp}$"
+    f"^(?P<task>[^][]+){TASK_SEPARATOR} +(?P<update>.+?){done_exp}$"
 )  # need on-greedy +? so update does not swallow DONE
 # Task [Key] posfix # no update yet
 alias_rex = re.compile(
-    f"(?i)^\[(?P<key>.+)?\] (?P<task>.+){TASK_SEPARATOR} *(?P<url>{regex_url})?(?: POSFIX:(?P<posfix>[^:]+):)?(?: ORDER:(?P<order>[^:]+):)?$"
+    f"(?i)^\[(?P<key>.+)?\] +(?P<task>.+){TASK_SEPARATOR} *(?P<url>{regex_url})?(?: POSFIX:(?P<posfix>[^:]+):)?(?: ORDER:(?P<order>[^:]+):)?$"
 )
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\s]+):(?P<url>{regex_url})")
