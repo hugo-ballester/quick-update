@@ -14,6 +14,7 @@ Hugo Zaragoza, 2020.
   *
   * Updates are given in a line: |Your task name:: your sub task name:: your update
   * You can add or remove sub task levels at any line, QuickUpdate will keep track of all.
+  * Update description will be formatted as follows: first letter is upper-cased, a period is added at the end if it does not have one.
 
   * A task is marked as done by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
 
@@ -129,6 +130,16 @@ date_rex = re.compile("^#\s*([0-9]+)[ /-]+([0-9]+)[ /-]+([0-9]+)$")
 blank_rex = re.compile("^\s*$")
 
 
+def format_update(update):
+
+    update = url_shorthand_rex.sub("[\\1](\\2)", update)
+
+    if not update[-1] == ".":
+        update += "."
+    update = update.capitalize()
+    return update
+
+
 def task_join(tasks):
     return " / ".join(tasks)
 
@@ -138,8 +149,6 @@ def task_split(tasks):
 
 
 def parse_line(line, aliases, urls, posfixes, order):
-    # SHORT-HANDS:
-    line = url_shorthand_rex.sub("[\\1](\\2)", line)
 
     # PARSE
     alias = alias_rex.search(line)
@@ -171,7 +180,7 @@ def parse_line(line, aliases, urls, posfixes, order):
             # try to math key form the left, longest first:
             task = aliases.get(task, task)
             done = True if d["done"] else False
-            update = d["update"]
+            update = format_update(d["update"])
             return task, update, done
 
         task, update, done = _parse_task_line(line, aliases)
