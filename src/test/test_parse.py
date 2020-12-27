@@ -24,8 +24,8 @@ def test_parse_oneline_tasks(line, des_task, des_done):
     "line,des_update",
     [
         (
-            "task1:: update 1_1 SIM:https://blah.com/blah?1&2 tarara",
-            "update 1_1 [SIM](https://blah.com/blah?1&2) tarara",
+            "task1::    update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
+            "Update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara.",
         ),
     ],
 )
@@ -35,7 +35,7 @@ def test_shorthands(line, des_update):
     urls = {}
     order = {}
     task, update, done = parse_line(line, {}, {}, {}, {})
-    assert des_update == update
+    assert des_update == update, "" + des_update + "-----" + update
 
 
 @pytest.mark.parametrize(
@@ -77,6 +77,13 @@ def test_shorthands(line, des_update):
             {"Task one": "my posfix here"},
             {"Task one": "z"},
         ),
+        (
+            "[BRR] Book Research:: Reading::		POSFIX:(DONE):",
+            {"BRR": "Book Research / Reading"},
+            {},
+            {"Book Research / Reading": "(DONE)"},
+            {},
+        ),
     ],
 )
 def test_parse_alias_expressions(line, des_alias, des_urls, des_posfix, des_order):
@@ -109,16 +116,16 @@ def test_parse_date(file_content, des_date):
 @pytest.mark.parametrize(
     "file_content,des_task, des_update",
     [
-        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "update"),
+        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "Update."),
         (
             "# 2001-01-01\n[T1] task1:: POSFIX:my posfix!:\nT1:: update",
             "task1",
-            "update my posfix!",
+            "Update my posfix!",
         ),
         (
             "# 2001-01-01\n[T1] task1:: task2::\nT1:: task 3:: update",
             task_join(("task1", "task2", "task 3")),
-            "update",
+            "Update.",
         ),
     ],
 )
@@ -145,7 +152,7 @@ task1:: update 1_2
             """# example 2
 # 2020-01-01
 task1:: update 1_1
-task1:: update 1_2 (DONE)
+task1::     update 1_2 (DONE)
 """,
             [],
         ),

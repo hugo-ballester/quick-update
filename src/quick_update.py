@@ -117,11 +117,11 @@ regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()
 done_exp = "|".join([re.escape(x) for x in DONE_POSFIX])
 done_exp = "(?P<done> " + done_exp + ")?"
 line_parser_rex = re.compile(
-    f"^(?P<task>[^][]+){TASK_SEPARATOR} +(?P<update>.+?){done_exp}$"
+    f"^(?P<task>[^][]+){TASK_SEPARATOR}[ \t]+(?P<update>.+?){done_exp}$"
 )  # need on-greedy +? so update does not swallow DONE
 # Task [Key] posfix # no update yet
 alias_rex = re.compile(
-    f"(?i)^\[(?P<key>.+)?\] +(?P<task>.+){TASK_SEPARATOR} *(?P<url>{regex_url})?(?: POSFIX:(?P<posfix>[^:]+):)?(?: ORDER:(?P<order>[^:]+):)?$"
+    f"(?i)^\[(?P<key>[^]]+)?\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*$"
 )
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\s]+):(?P<url>{regex_url})")
@@ -134,9 +134,9 @@ def format_update(update):
 
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
 
-    if not update[-1] == ".":
+    if not re.match("[.!?]", update[-1]):
         update += "."
-    update = update.capitalize()
+    update = f"{update[0].upper()}{update[1:]}"
     return update
 
 
@@ -164,7 +164,7 @@ def parse_line(line, aliases, urls, posfixes, order):
             order[task] = d["order"]
         return None
     elif line.startswith("["):  # bad alias line?
-        raise SyntaxError
+        raise SyntaxError(f"Could not parse task alias line: [{line}]")
 
     else:
 
@@ -503,13 +503,12 @@ headline2 = "_" * int(terminal_cols)
 
 
 def main():
+    commands = "{edit, last, open, reports, tasks, todo, week}"
+
     envvar = f"{app_name.upper()}_UPDATE_FILE"
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "commands",
-        type=str,
-        nargs="+",
-        help="list of commands {edit, help, open, tasks, week}",
+        "commands", type=str, nargs="+", help=f"list of commands {commands}",
     )
     ap.add_argument(
         "-f",
@@ -546,15 +545,12 @@ def main():
     pd.set_option("display.width", -1)
     pd.set_option("display.max_colwidth", -1)
 
-    if args["commands"] == ["all"]:
-        args["commands"] = ["last", "open", "lastweek", "thisweek", "tasks", "todo"]
-
     for command in args["commands"]:
 
         if command == "test":
             run_tests(df)
 
-        elif command == "all":
+        elif command == "reports":
             print(report_last_days(df))
             print(report_open_tasks(df))
             print(report_this_week(df))
@@ -586,9 +582,7 @@ def main():
             print(report_last_week(df))
 
         else:
-            print(
-                f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {{all, edit, last, open, tasks, todo, week}}"
-            )
+            print(f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {commands}")
 
     print(bold(f"\n{headline1}\n\n"))
 
