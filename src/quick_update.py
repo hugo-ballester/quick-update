@@ -53,7 +53,7 @@ Example update file:
 ## DEPLOY
 
 I use this crontab line to be reminded every 2h to update the updates file:
-0 9-18/2 * * * open /Applications/Sublime\ Text.app  ~/WorkDocs/Project_Updates/updates.tsv
+0 9-18/2 * * * open '/Applications/Sublime Text.app'  ~/WorkDocs/Project_Updates/updates.tsv
 
 I use this alias in my to run all reports from the command line (and look at whatever I need):
 > alias qr='pushd $HOME/git/QuickUpdate; source venv/bin/activate; python src/quick_update.py -f $HOME/WorkDocs/Project_Updates/updates.tsv all; popd'
@@ -121,13 +121,13 @@ line_parser_rex = re.compile(
 )  # need on-greedy +? so update does not swallow DONE
 # Task [Key] posfix # no update yet
 alias_rex = re.compile(
-    f"(?i)^\[(?P<key>[^]]+)?\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*$"
+    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*$"
 )
 
-url_shorthand_rex = re.compile(f"(?P<word>[^\s]+):(?P<url>{regex_url})")
+url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
-date_rex = re.compile("^#\s*([0-9]+)[ /-]+([0-9]+)[ /-]+([0-9]+)$")
-blank_rex = re.compile("^\s*$")
+date_rex = re.compile("^#\\s*([0-9]+)[ /-]+([0-9]+)[ /-]+([0-9]+)$")
+blank_rex = re.compile("^\\s*$")
 
 
 def format_update(update):
@@ -501,21 +501,20 @@ except:
 headline1 = "=" * int(terminal_cols)
 headline2 = "_" * int(terminal_cols)
 
-
 def main():
-    commands = "{edit, last, open, reports, tasks, todo, week}"
-
-    envvar = f"{app_name.upper()}_UPDATE_FILE"
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "commands", type=str, nargs="+", help=f"list of commands {commands}",
+        "commands",
+        type=str,
+        nargs="+",
+        help="list of commands {edit, help, open, tasks, week}",
     )
     ap.add_argument(
         "-f",
         "--update_file",
-        required=False,
+        required=True,
         default=None,
-        help="Update file (default is environment variable " + envvar,
+        help="Update file",
     )
 
     args = vars(ap.parse_args())
@@ -525,7 +524,6 @@ def main():
         return
 
     file = args["update_file"]
-    file = file if file else os.environ[envvar]
 
     print(
         bold(
@@ -534,32 +532,34 @@ def main():
     )
     print(f"UPDATE FILE: {file}\n")
 
+    if args["commands"] == ["all"]:
+        args["commands"] = ["last", "open", "lastweek", "thisweek", "tasks", "todo"]
+
+    if "edit" in args["commands"]:
+        os.system(f"open {file}")
+        args["commands"].remove("edit")
+
+    if len(args["commands"])==0:
+        return
+
     with open(file, "r") as _file:
         file_content = _file.read()
+        df, todos, posfix = parse_file(file_content)
 
-    df, todos, posfix = parse_file(file_content)
 
-    # Panda display options
-    pd.set_option("display.max_rows", None)
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.width", -1)
-    pd.set_option("display.max_colwidth", -1)
 
     for command in args["commands"]:
 
         if command == "test":
             run_tests(df)
 
-        elif command == "reports":
+        elif command == "all":
             print(report_last_days(df))
             print(report_open_tasks(df))
             print(report_this_week(df))
             print(report_last_week(df))
             print(report_tasks(df, posfix))
             print(report_tasks(df))
-
-        elif command == "edit":
-            os.system(f"open {file}")
 
         elif command == "lastweek":
             print(report_last_week(df))
@@ -582,10 +582,13 @@ def main():
             print(report_last_week(df))
 
         else:
-            print(f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {commands}")
+            print(
+                f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {{all, edit, last, open, tasks, todo, week}}"
+            )
 
     print(bold(f"\n{headline1}\n\n"))
 
 
 if __name__ == "__main__":
     main()
+
