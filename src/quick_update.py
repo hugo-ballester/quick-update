@@ -298,7 +298,7 @@ def closed_tasks(data, at_date=None):
         at_date = datetime.strptime(at_date, "%Y-%m-%d")
         df = df[(df["Date"] <= at_date)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"] == True)]
+    df = df[(df["Done"] )]
     return df
 
 
@@ -345,7 +345,9 @@ def report1(
     if last_only:
         df = df.sort_values("Date").groupby(last_only).tail(1)
     df = df.sort_values(sortby, ascending=ascending)
+
     df = df.groupby(groupby)
+
     for name, group in df:
         tmp = ""
         nrows = 0
@@ -401,7 +403,7 @@ def report_open_tasks(df, title="OPEN TASKS:"):
 def report_closed_tasks(df, title="CLOSED TASKS:"):
     df = closed_tasks(df)
     ret = title_str(title) + "\n"
-    ret += report1(df, "Date", display_key=True, last_only="Key")
+    ret += report1(df, "Date", display_key=True, last_only="Task")
     return ret
 
 
