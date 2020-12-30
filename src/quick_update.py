@@ -66,23 +66,41 @@ import re
 import subprocess
 import sys
 from datetime import timedelta, datetime
-
+from dateutil.relativedelta import relativedelta
 import pandas as pd
 
 # DESIGN ===============================================================================================================
 app_name = "QuickUpdate"
 version_name = "v 0.3.0"
+MIN_NUMBER_DAYS_TO_REPORT = 14
 err_pre = "INPUT DATA ERROR:"
 design_bullet = "* "
 DONE_POSFIX = ["(DONE)", "(.)"]
 TODO_PREFIX = "#TODO "
 TODO_CONT_PREFIX = "#- "
 
+pd.set_option('display.max_columns', None)
+
 
 def bold(string):
     BOLD = "\033[1m"
     END = "\033[0m"
     return BOLD + string + END
+
+def date_string(dt):
+    if not dt:
+        return ""
+    now = datetime.now()
+    rd = relativedelta(now, dt)
+    if rd.years or rd.months:
+        months = 12 * rd.years + rd.months
+        return f"{months:.0f}m"
+    elif rd.days > 7:
+        weeks = rd.days / 7
+        return f"{weeks:.0f}w"
+    else:
+        return f"{rd.days:.0f}d"
+
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -95,12 +113,10 @@ def myassert(test, msg):
         sys.exit(f"ERROR (QUITTING): " + msg)
 
 
-def mydebug(string):
-    print("--------------")
-    print("--------------")
-    print("--- DEBUG: ---")
+def debug(string, title=""):
+    print(f"--- DEBUG: {title}---")
     print(str(string))
-    print("--------------")
+    print("------------------------------------------------------")
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -251,7 +267,7 @@ def parse_file(string):
             data.append([date, task, update, done])
 
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
-    df.Date = pd.to_datetime(df.Date).dt.strftime("%Y-%m-%d")
+    df.Date = pd.to_datetime(df.Date)
 
     # add Keys (for display):
     task_to_key = {v: k for k, v in keys.items()}
@@ -312,7 +328,7 @@ def format_line(
     task,
     update="",
     done=False,
-    date="",
+    date=None,
     level=0,
     display_key=True,
     display_done=False,
@@ -322,13 +338,17 @@ def format_line(
         key = f"{key:7}"
     else:
         key = ""
-    task = f"{task:30}" if task else ""
-    d = f"{date}: " if date else ""
+    task = f"{task:30}\t" if task else ""
+    ds = ''
+    if date and -(date-datetime.now()).days >= MIN_NUMBER_DAYS_TO_REPORT:
+        ds = '('+date_string(date)+')'
+        ds = f" {ds:s}"
     update = f": {update}" if update else ""
     prefx = "  " * (level + 1) + design_bullet
     task = f"{task}" if task else ""
     done = "" if not display_done else " (DONE)" if done else " (...)"
-    l = f"{prefx}{key}{task}{d}{update}{done}\n"
+    l = f"{prefx}{key}{task}{update}{done}{ds}\n"
+
     return l
 
 
@@ -337,6 +357,7 @@ def report1(
     groupby,
     display_key=True,
     display_done=False,
+    display_date=False,
     last_only=None,
     sortby="Date",
     ascending=False,
@@ -345,9 +366,7 @@ def report1(
     if last_only:
         df = df.sort_values("Date").groupby(last_only).tail(1)
     df = df.sort_values(sortby, ascending=ascending)
-
-    df = df.groupby(groupby)
-
+    df = df.groupby(groupby, sort=False)
     for name, group in df:
         tmp = ""
         nrows = 0
@@ -356,6 +375,7 @@ def report1(
                 row.Key,
                 row.Task,
                 row.Update,
+                date=row.Date if display_date else None,
                 done=row.Done,
                 level=1,
                 display_key=display_key,
@@ -396,14 +416,14 @@ def report_tasks(df, posfix, title="TASKS DEFINED:"):
 def report_open_tasks(df, title="OPEN TASKS:"):
     df = open_tasks(df)
     ret = title_str(title) + "\n"
-    ret += report1(df, "Task", display_key=False, last_only="Task")
+    ret += report1(df, groupby="Task", display_date=True,  display_key=False, last_only="Task", sortby="Order", ascending=True)
     return ret
 
 
 def report_closed_tasks(df, title="CLOSED TASKS:"):
     df = closed_tasks(df)
     ret = title_str(title) + "\n"
-    ret += report1(df, "Date", display_key=True, last_only="Task")
+    ret += report1(df, groupby="Task", display_date=False, display_key=False, last_only="Task", sortby="Order", ascending=True)
     return ret
 
 
@@ -562,9 +582,6 @@ def main():
             print(report_last_week(df))
             print(report_tasks(df, posfix))
             print(report_tasks(df))
-
-        elif command == "lastweek":
-            print(report_last_week(df))
 
         elif command == "thisweek":
             print(report_this_week(df))
