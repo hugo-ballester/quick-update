@@ -110,7 +110,7 @@ def test_parse_alias_expressions(line, des_alias, des_urls, des_posfix, des_orde
 def test_parse_date(file_content, des_date):
     df, _, _ = parse_file(file_content)
     assert 1 == df.shape[0]
-    assert des_date == df.iloc[0]["Date"]
+    assert df.iloc[0]["Date"] == datetime.strptime(des_date, '%Y-%m-%d')
 
 
 @pytest.mark.parametrize(
@@ -187,7 +187,7 @@ task1:: task1sub1:: update 1-1_1
 )
 def test_parse_completion(lines, des_open_tasks):
     df, _, _ = parse_file(lines)
-    df = open_tasks(df, None)
+    df = open_tasks(df)
     assert len(des_open_tasks) == df.shape[0]
     i = 0
     for t in des_open_tasks:

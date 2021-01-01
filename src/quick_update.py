@@ -1,62 +1,9 @@
 help = """
 QuickUpdate
-
 Hugo Zaragoza, 2020.
 
-## ARGUMENTS: see main()
+see README.md
 
-## COMMANDS: see main()
-
-## INPUT FILE FORMAT:
-  *
-  * Dates should be indicated in a line: |#2020-01-01
-  * (Dates should be incremental or decremental)
-  *
-  * Updates are given in a line: |Your task name:: your sub task name:: your update
-  * You can add or remove sub task levels at any line, QuickUpdate will keep track of all.
-  * Update description will be formatted as follows: first letter is upper-cased, a period is added at the end if it does not have one.
-
-  * A task is marked as done by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
-
-  * You can define aliases for tasks as follows:  |Task name:: sub task name:: [YOUR_KEY] OPTIONAL_URL POSFIX:OPTIONAL_POSFIX: ::ORDER:your_prefix_string:
-  *   in that case:
-  *      * you can use the alias instead of the task names: |YOUR_KEY:: your update
-  *      * if you define a url, the task will be linked to URL in reports
-  *      * if you define a posfix, it will be added at the end of every update for this key (useful for tasks that you want to mark always as DONE with every update)
-  *      * if you define an order, task alphabetical order will prefix this string (e.g. use ::ORDER:zzz: to push to the bottom)
-
-  * Lines starting with #TODO are stored and reported. Multilines todos can be done following lines with "#- "
-
-
-  * Links of the form word:URL are converted to Markup's usual [word](url)
-
-Example update file:
-
-  |[XFP] Project-X:: First Proposal::
-  |[11]  Management:: 1:1s:: POSFIX:(DONE): ORDER:zzz:
-  |
-  |#2020-01-01
-  |XFP:: discussed with Phoebe
-  |XFP:: drew data flow diagrams
-  |XFP:: Legal:: cleared with legal (DONE)
-  |Project-X:: Recruiting:: contacted 20 canidates
-  |
-  |#2020-01-02
-  |# comment line (will be ignored)
-  |Another Top Level Task:: shipped documentation SIM:https://blah.com (.)
-  |11:: met with Rachel
-  |
-  |#TODO write-up doc about a dog
-  |#TODO think about new directions:
-  
-
-## DEPLOY
-
-I use this crontab line to be reminded every 2h to update the updates file:
-0 9-18/2 * * * open '/Applications/Sublime Text.app'  ~/WorkDocs/Project_Updates/updates.tsv
-
-I use this alias in my to run all reports from the command line (and look at whatever I need):
-> alias qr='pushd $HOME/git/QuickUpdate; source venv/bin/activate; python src/quick_update.py -f $HOME/WorkDocs/Project_Updates/updates.tsv all; popd'
 
 """
 
@@ -90,8 +37,7 @@ def bold(string):
 def date_string(dt):
     if not dt:
         return ""
-    now = datetime.now()
-    rd = relativedelta(now, dt)
+    rd = relativedelta(_now, dt)
     if rd.years or rd.months:
         months = 12 * rd.years + rd.months
         return f"{months:.0f}m"
@@ -298,21 +244,19 @@ def end_dates(data):
     return closed_tasks(data)
 
 
-def open_tasks(data, at_date=None):
+def open_tasks(data):
     df = data
-    if at_date:
-        at_date = datetime.strptime(at_date, "%Y-%m-%d")
-        df = df[(df["Date"] <= at_date)]
+    if _now:
+        df = df[(df["Date"] <= _now)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
     df = df[(df["Done"] == False)]
     return df
 
 
-def closed_tasks(data, at_date=None):
+def closed_tasks(data):
     df = data
-    if at_date:
-        at_date = datetime.strptime(at_date, "%Y-%m-%d")
-        df = df[(df["Date"] <= at_date)]
+    if _now:
+        df = df[(df["Date"] <= _now)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
     df = df[(df["Done"] )]
     return df
@@ -331,8 +275,9 @@ def format_line(
     date=None,
     level=0,
     display_key=True,
-    display_done=False,
+    display_done=False
 ):
+
     if display_key:
         key = f"[{key}]" if key else " "
         key = f"{key:7}"
@@ -340,7 +285,7 @@ def format_line(
         key = ""
     task = f"{task:30}\t" if task else ""
     ds = ''
-    if date and -(date-datetime.now()).days >= MIN_NUMBER_DAYS_TO_REPORT:
+    if date and -(date-_now).days >= MIN_NUMBER_DAYS_TO_REPORT:
         ds = '('+date_string(date)+')'
         ds = f" {ds:s}"
     update = f": {update}" if update else ""
@@ -416,6 +361,7 @@ def report_tasks(df, posfix, title="TASKS DEFINED:"):
 def report_open_tasks(df, title="OPEN TASKS:"):
     df = open_tasks(df)
     ret = title_str(title) + "\n"
+
     ret += report1(df, groupby="Task", display_date=True,  display_key=False, last_only="Task", sortby="Order", ascending=True)
     return ret
 
@@ -428,7 +374,7 @@ def report_closed_tasks(df, title="CLOSED TASKS:"):
 
 
 def report_last_week(df):
-    date = datetime.now()
+    date = _now
     startdate = date + timedelta(days=-date.weekday(), weeks=-1)
     enddate = startdate + timedelta(days=6)
     weekno = startdate.isocalendar()[1]
@@ -440,7 +386,7 @@ def report_last_week(df):
 
 
 def report_this_week(df):
-    date = datetime.now()
+    date = _now
     startdate = date + timedelta(days=-date.weekday())
     enddate = startdate + timedelta(days=6)
     weekno = startdate.isocalendar()[1]
@@ -472,7 +418,7 @@ def report_span(df, startdate, enddate):
 def report_last_days(df):
     ret = title_str("LAST TASKS") + "\n"
     for i in range(0, 3):
-        date = datetime.now()
+        date = _now
         date = date + timedelta(days=-i)
         dft = df[(df.Date == str(date.date()))]
         datestr = f"{date.date().year} / {date.date().month} / {date.date().day}"
@@ -484,8 +430,8 @@ def report_last_days(df):
 
 
 def show_day(df, offset, title_prefix=""):
-    start_date = datetime.strftime(datetime.now() - timedelta(offset), "%Y-%m-%d")
-    end_date = datetime.strftime(datetime.now() + timedelta(1), "%Y-%m-%d")
+    start_date = datetime.strftime(_now - timedelta(offset), "%Y-%m-%d")
+    end_date = datetime.strftime(_now + timedelta(1), "%Y-%m-%d")
     title = f"{title_prefix}{start_date} - {end_date}:"
 
     mask = (df["Date"] >= start_date) & (df["Date"] <= end_date)
@@ -523,13 +469,17 @@ except:
 headline1 = "=" * int(terminal_cols)
 headline2 = "_" * int(terminal_cols)
 
+_now = datetime.now()
+
 def main():
-    ap = argparse.ArgumentParser()
+    commands_list = ["last", "open", "closed", "lastweek", "thisweek", "tasks", "todo"]
+
+    ap = argparse.ArgumentParser(description="(For more info see https://github.com/hugozaragoza/quick-update/blob/main/README.md)")
     ap.add_argument(
         "commands",
         type=str,
         nargs="+",
-        help="list of commands {edit, help, open, tasks, week}",
+        help="list of commands: "+", ".join(commands_list),
     )
     ap.add_argument(
         "-f",
@@ -538,10 +488,15 @@ def main():
         default=None,
         help="Update file",
     )
-
+    ap.add_argument(
+        "--now",
+        required=False,
+        help="Use a different date for today (for reports relative to today). Use format %Y-%m-%d",
+    )
     args = vars(ap.parse_args())
 
     if "help" in args["commands"]:
+        ap.print_help()
         print(help)
         return
 
@@ -552,10 +507,16 @@ def main():
             f"\n\n{headline1}\n{headline1}\n{headline1}\n{app_name} {version_name}\n{headline2}\n"
         )
     )
-    print(f"UPDATE FILE: {file}\n")
+    print(f"UPDATE FILE: {file}")
+    if (args['now']):
+        global _now
+        _now = datetime.strptime(args['now'], '%Y-%m-%d')
+        print("WARNING: NOW is set to "+str(_now))
+
+    print()
 
     if args["commands"] == ["all"]:
-        args["commands"] = ["last", "open", "lastweek", "thisweek", "tasks", "todo"]
+        args["commands"] = commands_list
 
     if "edit" in args["commands"]:
         os.system(f"open {file}")
@@ -588,6 +549,8 @@ def main():
 
         elif command == "open":
             print(report_open_tasks(df, title=bold("OPEN TASKS")))
+
+        elif command == "closed":
             print(report_closed_tasks(df, bold("CLOSED TASKS")))
 
         elif command == "tasks":
