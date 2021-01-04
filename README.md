@@ -110,22 +110,32 @@ OPEN TASKS
 
 ```
 
+### REPORTS AVAILABLE:
+  * Ongoing Work
+  * Work done last Week
+  * Work done in Current Week
+  * Open Tasks
+  * Closed Tasks
+  * TODOs
+  * Task Aliases
+
 ### UPDATES FILE FORMAT:
-  * Dates should be indicated in a line: |#2020-01-01
-  * (Dates should be incremental or decremental)
-  * Updates are given in a line: |Your task name:: your sub task name:: your update
-  * You can add or remove sub task levels at any line, QuickUpdate will keep track of all.
-  * Update description will be formatted as follows: first letter is upper-cased, a period is added at the end if it does not have one.
+  * Being an update block with a date heading: `# 2020-01-01`
+  * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
+  * You can add or remove sub task levels at any line.
   * A task is marked as done by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
-  * You can define aliases for tasks as follows
-    * ```Task name:: sub task name:: [YOUR_KEY] OPTIONAL_URL POSFIX:OPTIONAL_POSFIX: ::ORDER:your_prefix_string:```
-    * afterwards you can use the alias instead of the task names: ```YOUR_KEY:: your update```
-    * if you define a url, the task will be linked to URL in reports
+  * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```ALIAS:: your update``` 
+    * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
+    * You can add an optional URL to be linked with every update for this (sub)task.
+    * You can add an optional posfix and order prefix (prefix to be used when sorting alphabetically)
+    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX:optional_posfix: ::ORDER:optional_prefix_string:`
     * if you define a posfix, it will be added at the end of every update for this key (useful for tasks that you want to mark always as DONE with every update)
     * if you define an order, task alphabetical order will prefix this string (e.g. use ::ORDER:zzz: to push to the bottom)
-
-  * Lines starting with #TODO are stored and reported. Multilines todos can be done following lines with "#- "
-  * Links of the form word:URL are converted to Markup's usual [word](url)
+  * Update description will be formatted as follows: 
+    * first letter is upper-cased, a period is added at the end if it does not have one.
+    * links of the form word:URL are converted to Markup's usual [word](url)
+  * Lines starting with #TODO are stored and reported. Multilines todos can be done following lines with `#- `
+  
 
 
 

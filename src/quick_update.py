@@ -491,7 +491,7 @@ def main():
     ap.add_argument(
         "--now",
         required=False,
-        help="Use a different date for today (for reports relative to today). Use format %Y-%m-%d",
+        help="Use a different date for today (for reports relative to today). Use format %%Y-%%m-%%d",
     )
     args = vars(ap.parse_args())
 
