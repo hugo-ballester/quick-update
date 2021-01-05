@@ -104,7 +104,7 @@ def test_parse_alias_expressions(line, des_alias, des_urls, des_posfix, des_orde
     [
         ("# 2001-01-01\ntask1:: blah", "2001-01-01"),
         ("#  2001 01 01\ntask1:: blah", "2001-01-01"),
-        ("#2001 01 01\ntask1:: blah", "2001-01-01"),
+        ("#2001 01 01       \ntask1:: blah", "2001-01-01"),
     ],
 )
 def test_parse_date(file_content, des_date):

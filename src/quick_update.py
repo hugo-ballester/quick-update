@@ -88,7 +88,7 @@ alias_rex = re.compile(
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
-date_rex = re.compile("^#\\s*([0-9]+)[ /-]+([0-9]+)[ /-]+([0-9]+)$")
+date_rex = re.compile("^#\\s*(\\d+)[ /-](\\d+)[ /-](\\d+)$")
 blank_rex = re.compile("^\\s*$")
 
 
@@ -168,7 +168,7 @@ def parse_file(string):
 
     lines = string.split("\n")
     for line in lines:
-        # mydebug(line)
+        line = line.strip()
         linenum += 1
         date_m = re.search(date_rex, line)
         if date_m:
