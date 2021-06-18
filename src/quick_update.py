@@ -1,4 +1,4 @@
-help = """
+"""
 QuickUpdate
 Hugo Zaragoza, 2020.
 
@@ -6,20 +6,20 @@ see README.md
 
 
 """
-
 import argparse
-import os
-import re
-import subprocess
-import sys
 from datetime import timedelta, datetime
-from dateutil.relativedelta import relativedelta
+import os
 import pandas as pd
+import re
+import shutil
 
-# DESIGN ===============================================================================================================
+from utils import bold, myassert, date_string, debug, title_str, headline1, headline2
+
+# ------------------------------------------------------------------------------------------------------------
+# DESIGN
+# ------------------------------------------------------------------------------------------------------------
 app_name = "QuickUpdate"
-version_name = "v 0.3.0"
-MIN_NUMBER_DAYS_TO_REPORT = 14
+version_name = "v 0.5"
 err_pre = "INPUT DATA ERROR:"
 design_bullet = "* "
 DONE_POSFIX = ["(DONE)", "(.)"]
@@ -28,41 +28,22 @@ TODO_CONT_PREFIX = "#- "
 
 pd.set_option('display.max_columns', None)
 
-
-def bold(string):
-    BOLD = "\033[1m"
-    END = "\033[0m"
-    return BOLD + string + END
-
-def date_string(dt):
-    if not dt:
-        return ""
-    rd = relativedelta(_now, dt)
-    if rd.years or rd.months:
-        months = 12 * rd.years + rd.months
-        return f"{months:.0f}m"
-    elif rd.days > 7:
-        weeks = rd.days / 7
-        return f"{weeks:.0f}w"
-    else:
-        return f"{rd.days:.0f}d"
-
-
-
 # ------------------------------------------------------------------------------------------------------------
 # MISC:
 # ------------------------------------------------------------------------------------------------------------
 
 
-def myassert(test, msg):
-    if not test:
-        sys.exit(f"ERROR (QUITTING): " + msg)
+date_rex = re.compile("^#\\s*(\\d+)[ /-](\\d+)[ /-](\\d+)\\n?$")
 
 
-def debug(string, title=""):
-    print(f"--- DEBUG: {title}---")
-    print(str(string))
-    print("------------------------------------------------------")
+def parse_date(line):
+    new_date = None
+    date_m = re.search(date_rex, line)
+    if date_m:
+        new_date = datetime.strptime(
+            "-".join([date_m.group(x) for x in range(1, 4)]), "%Y-%m-%d"
+        ).date()
+    return new_date
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -88,12 +69,10 @@ alias_rex = re.compile(
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
-date_rex = re.compile("^#\\s*(\\d+)[ /-](\\d+)[ /-](\\d+)$")
 blank_rex = re.compile("^\\s*$")
 
 
 def format_update(update):
-
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
 
     if not re.match("[.!?]", update[-1]):
@@ -111,7 +90,6 @@ def task_split(tasks):
 
 
 def parse_line(line, aliases, urls, posfixes, order):
-
     # PARSE
     alias = alias_rex.search(line)
     if alias:
@@ -170,17 +148,15 @@ def parse_file(string):
     for line in lines:
         line = line.strip()
         linenum += 1
-        date_m = re.search(date_rex, line)
+        date_m = parse_date(line)
         if date_m:
-            new_date = datetime.strptime(
-                "-".join([date_m.group(x) for x in range(1, 4)]), "%Y-%m-%d"
-            )
+            new_date = date_m
             if date:
                 if not date_ascending:
                     date_ascending = new_date > date
                 else:
                     if (date_ascending and new_date <= date) or (
-                        not date_ascending and new_date >= date
+                            not date_ascending and new_date >= date
                     ):
                         myassert(
                             new_date > date,
@@ -226,7 +202,7 @@ def parse_file(string):
     df["Key"] = all_keys
     df["Order"] = all_order
 
-    return df, todos, posfixes
+    return df, todos, posfixes, date_ascending
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -258,7 +234,7 @@ def closed_tasks(data):
     if _now:
         df = df[(df["Date"] <= _now)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"] )]
+    df = df[(df["Done"])]
     return df
 
 
@@ -268,16 +244,15 @@ def closed_tasks(data):
 
 
 def format_line(
-    key,
-    task,
-    update="",
-    done=False,
-    date=None,
-    level=0,
-    display_key=True,
-    display_done=False
+        key,
+        task,
+        update="",
+        done=False,
+        date=None,
+        level=0,
+        display_key=True,
+        display_done=False
 ):
-
     if display_key:
         key = f"[{key}]" if key else " "
         key = f"{key:7}"
@@ -285,8 +260,8 @@ def format_line(
         key = ""
     task = f"{task:30}\t" if task else ""
     ds = ''
-    if date and -(date-_now).days >= MIN_NUMBER_DAYS_TO_REPORT:
-        ds = '('+date_string(date)+')'
+    if date:
+        ds = '(' + date_string(date) + ')'
         ds = f" {ds:s}"
     update = f": {update}" if update else ""
     prefx = "  " * (level + 1) + design_bullet
@@ -298,14 +273,15 @@ def format_line(
 
 
 def report1(
-    df,
-    groupby,
-    display_key=True,
-    display_done=False,
-    display_date=False,
-    last_only=None,
-    sortby="Date",
-    ascending=False,
+        df,
+        groupby,
+        display_key=True,
+        display_done=False,
+        display_date=False,
+        last_only=None,
+        sortby="Date",
+        ascending=False,
+        display_group_headers=True
 ):
     ret = ""
     if last_only:
@@ -328,16 +304,14 @@ def report1(
             )
             nrows += 1
 
-        if nrows > 1:
-            ret += design_bullet + name + "\n" + tmp
+        if display_group_headers and nrows > 1:
+            ret += design_bullet + str(name) + "\n" + tmp
         else:
             ret += tmp
 
     return ret
 
 
-def title_str(string):
-    return bold(headline2 + "\n" + string)
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -362,14 +336,27 @@ def report_open_tasks(df, title="OPEN TASKS:"):
     df = open_tasks(df)
     ret = title_str(title) + "\n"
 
-    ret += report1(df, groupby="Task", display_date=True,  display_key=False, last_only="Task", sortby="Order", ascending=True)
+    ret += report1(df, groupby="Task", display_date=True, display_key=False, last_only="Task", sortby="Order",
+                   ascending=True)
+    return ret
+
+
+def report_log(df, task, title="LOG:"):
+    tmp = df[df.Key==task]
+    if len(tmp)>0:
+        task=tmp.iloc[0].Task
+    df = df[df.Task == task]
+    ret = title_str(title) + "\n"
+    ret += report1(df, groupby="Date", display_date=True, display_key=False, last_only=None, sortby="Date",
+                   ascending=True, display_group_headers=False)
     return ret
 
 
 def report_closed_tasks(df, title="CLOSED TASKS:"):
     df = closed_tasks(df)
     ret = title_str(title) + "\n"
-    ret += report1(df, groupby="Task", display_date=False, display_key=False, last_only="Task", sortby="Order", ascending=True)
+    ret += report1(df, groupby="Task", display_date=False, display_key=False, last_only="Task", sortby="Order",
+                   ascending=True)
     return ret
 
 
@@ -442,6 +429,55 @@ def show_day(df, offset, title_prefix=""):
 
 
 # ------------------------------------------------------------------------------------------------------------
+# FILE MANIPULATION
+# ------------------------------------------------------------------------------------------------------------
+
+def add_date_to_file(file, now):
+    '''
+    Rewrite file adding now's date entry.
+    '''
+    # Find out if ascending or descending:
+    date_ascending = None
+    date = None
+    for line in open(file, "r"):
+        d = re.search(date_rex, line)
+        if d:
+            d = datetime.strptime("-".join([d.group(x) for x in range(1, 4)]), "%Y-%m-%d")
+            if date is None:
+                date = d
+            else:
+                date_ascending = d > date
+                break
+    if date_ascending is None:
+        return
+
+    # Write new File:
+    date_str = f"# {now.strftime('%Y-%m-%d')}\n\n\n"
+    newfile = ""
+    today_inserted = False
+    for line in open(file, "r"):
+        d = re.search(date_rex, line)
+        if not today_inserted and d:
+            d = datetime.strptime("-".join([d.group(x) for x in range(1, 4)]), "%Y-%m-%d").date()
+            debug(f"1: {now.date()} - {d}")
+            if d == now.date():
+                today_inserted = True  # not needed
+            else:
+                if d and not date_ascending:
+                    newfile += date_str
+                    today_inserted = True
+        newfile += line
+    if not today_inserted:
+        newfile += date_str
+        today_inserted = True
+
+    shutil.copyfile(file, f"{file}.old")
+
+    with open(file, "w") as text_file:
+        text_file.write(newfile)
+
+
+# ------------------------------------------------------------------------------------------------------------
 # MAIN
 # ------------------------------------------------------------------------------------------------------------
 
@@ -461,25 +497,36 @@ def run_tests(df):
 #   print("WEEKLY --------------")
 #   print(report_last_week(df))
 
-terminal_cols = 80
-try:
-    _, terminal_cols = subprocess.check_output(["stty", "size"]).decode().split()
-except:
-    pass
-headline1 = "=" * int(terminal_cols)
-headline2 = "_" * int(terminal_cols)
 
 _now = datetime.now()
 
-def main():
-    commands_list = ["last", "open", "closed", "lastweek", "thisweek", "tasks", "todo"]
 
-    ap = argparse.ArgumentParser(description="(For more info see https://github.com/hugozaragoza/quick-update/blob/main/README.md)")
+def main():
+    help_msg = """
+Commands: 
+    help\t: this message
+    tasks\t: list all tasks abbreviations
+    todo\t: list todos    
+
+    open\t: list last entry of each open tasks
+    closed\t: list last entry of each closed task
+    lastweek\t: list last entry for each task worked on last week
+    thisweek\t: list last entry for each task worked on this week
+    span <date1> <date2>\t: list last entry for each task worked on in this span
+
+    log <task>\t: list all entried for this task, in chronological order
+"""
+
+    commands_list = ["log", "open", "closed", "lastweek", "span <date-start> <date-end>", "thisweek", "tasks", "todo"]
+
+    ap = argparse.ArgumentParser(
+        description="(https://github.com/hugozaragoza/quick-update/blob/main/README.md)")
+
     ap.add_argument(
         "commands",
         type=str,
         nargs="+",
-        help="list of commands: "+", ".join(commands_list),
+        help= ", ".join(commands_list),
     )
     ap.add_argument(
         "-f",
@@ -497,7 +544,7 @@ def main():
 
     if "help" in args["commands"]:
         ap.print_help()
-        print(help)
+        print(help_msg)
         return
 
     file = args["update_file"]
@@ -511,7 +558,7 @@ def main():
     if (args['now']):
         global _now
         _now = datetime.strptime(args['now'], '%Y-%m-%d')
-        print("WARNING: NOW is set to "+str(_now))
+        print("WARNING: NOW is set to " + str(_now))
 
     print()
 
@@ -519,20 +566,24 @@ def main():
         args["commands"] = commands_list
 
     if "edit" in args["commands"]:
+        add_date_to_file(file, _now)
         os.system(f"open {file}")
         args["commands"].remove("edit")
 
-    if len(args["commands"])==0:
+    if len(args["commands"]) == 0:
         return
 
     with open(file, "r") as _file:
         file_content = _file.read()
-        df, todos, posfix = parse_file(file_content)
+        df, todos, posfix, _ = parse_file(file_content)
 
+    skip=0
+    for i in range(len(args["commands"])):
+        if skip>0:
+            skip-=1
+            continue;
 
-
-    for command in args["commands"]:
-
+        command = args["commands"][i]
         if command == "test":
             run_tests(df)
 
@@ -544,8 +595,20 @@ def main():
             print(report_tasks(df, posfix))
             print(report_tasks(df))
 
+        elif command == "log":
+            task = args["commands"][i+1]
+            skip+=1
+            print(report_log(df, task))
+
         elif command == "thisweek":
             print(report_this_week(df))
+
+        elif command == "span":
+            startdate=datetime.strptime(args["commands"][i+1], '%Y-%m-%d')
+            enddate=datetime.strptime(args["commands"][i+2], '%Y-%m-%d')
+            print(title_str(f"SPAN: {startdate:%Y-%m-%d} - {enddate:%Y-%m-%d}\n\n"))
+            print(report_span(df, startdate,enddate))
+            skip+=2
 
         elif command == "open":
             print(report_open_tasks(df, title=bold("OPEN TASKS")))
@@ -565,7 +628,7 @@ def main():
 
         else:
             print(
-                f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {{all, edit, last, open, tasks, todo, week}}"
+                f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {', '.join(commands_list)}"
             )
 
     print(bold(f"\n{headline1}\n\n"))
@@ -573,4 +636,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -20,7 +20,7 @@ from quick_update import *
     ],
 )
 def test_order(file_content, des_task_order):
-    df, _, _ = parse_file(file_content)
+    df, _, _, _ = parse_file(file_content)
     df = df.sort_values("Order")
     tasks = df.Task.tolist()
     assert des_task_order == tasks
