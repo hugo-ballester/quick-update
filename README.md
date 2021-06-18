@@ -118,8 +118,10 @@ OPEN TASKS
   * Closed Tasks
   * TODOs
   * Task Aliases
+  
+  Do --help to see all commands and options
 
-### UPDATES FILE FORMAT:
+### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
   * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
   * You can add or remove sub task levels at any line.
@@ -137,7 +139,12 @@ OPEN TASKS
   * Lines starting with #TODO are stored and reported. Multilines todos can be done following lines with `#- `
   
 
+### MISC:
 
+Tip: I use this crontab line on my MacOS to reming myself to update frequently on what I am working on:
+```
+0 9-19/3 * * * open ~/Desktop/updates.tsv -a 'Sublime Text'
+```
 
 ### TODO: 
 - inherit parent task properties like order, done?
