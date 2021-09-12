@@ -19,7 +19,7 @@ from utils import bold, myassert, date_string, debug, title_str, headline1, head
 # DESIGN
 # ------------------------------------------------------------------------------------------------------------
 app_name = "QuickUpdate"
-version_name = "v 0.5"
+version_name = "v 0.6"
 err_pre = "INPUT DATA ERROR:"
 design_bullet = "* "
 DONE_POSFIX = ["(DONE)", "(.)"]
@@ -59,13 +59,19 @@ TASK_SEPARATOR = "::"  # TODO parametrise
 regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 done_exp = "|".join([re.escape(x) for x in DONE_POSFIX])
 done_exp = "(?P<done> " + done_exp + ")?"
+
+# TASK LINE DEFINITION:
 line_parser_rex = re.compile(
     f"^(?P<task>[^][]+){TASK_SEPARATOR}[ \t]+(?P<update>.+?){done_exp}$"
 )  # need on-greedy +? so update does not swallow DONE
-# Task [Key] posfix # no update yet
+
+# TASK ALIAS DEFINITION:
+# [Alias] Task::{ POSFIX:posfix:}{  ORDER:order}{ *url}
+
 alias_rex = re.compile(
-    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*$"
+    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
 )
+
 
 url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
@@ -75,8 +81,10 @@ blank_rex = re.compile("^\\s*$")
 def format_update(update):
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
 
+    update = update.strip()
     if not re.match("[.!?]", update[-1]):
         update += "."
+
     update = f"{update[0].upper()}{update[1:]}"
     return update
 
@@ -102,35 +110,37 @@ def parse_line(line, aliases, urls, posfixes, order):
             urls[task] = d["url"]
         if "order" in d and d["order"]:
             order[task] = d["order"]
-        return None
-    elif line.startswith("["):  # bad alias line?
+
+        if "update" in d and d["update"]:
+            line = f"{d['key']}:: {d['update']}"
+        else:
+            return None
+
+    if line.startswith("["):  # bad alias line?
         raise SyntaxError(f"Could not parse task alias line: [{line}]")
 
-    else:
+    def _parse_update_line(line, aliases):
+        rex = line_parser_rex.search(line)
+        if not rex:
+            raise SyntaxError
+        d = rex.groupdict()
+        tasklis = task_split(d["task"])
+        tasklis[0] = aliases.get(tasklis[0], tasklis[0])
+        task = task_join(tasklis)
 
-        def _parse_task_line(line, aliases):
-            rex = line_parser_rex.search(line)
-            if not rex:
-                raise SyntaxError
-            d = rex.groupdict()
-            tasklis = task_split(d["task"])
-            tasklis[0] = aliases.get(tasklis[0], tasklis[0])
-            task = task_join(tasklis)
-
-            # try to math key form the left, longest first:
-            task = aliases.get(task, task)
-            done = True if d["done"] else False
-            update = format_update(d["update"])
-            return task, update, done
-
-        task, update, done = _parse_task_line(line, aliases)
-        # add posfix if needed:
-        if task in posfixes:
-            line = line + " " + posfixes[task]
-            # mydebug(line)
-            task, update, done = _parse_task_line(line, aliases)
-
+        # try to macth key form the left, longest first:
+        done = True if d["done"] else False
+        update = format_update(d["update"])
         return task, update, done
+
+    task, update, done = _parse_update_line(line, aliases)
+    # add posfix if needed:
+    if task in posfixes:
+        line = line + " " + posfixes[task]
+        # mydebug(line)
+        task, update, done = _parse_update_line(line, aliases)
+
+    return task, update, done
 
 
 def parse_file(string):
@@ -139,31 +149,50 @@ def parse_file(string):
     linenum = 0
     data = []
     todos = []
-    keys = {}
+    aliases = {}
     urls = {}
     posfixes = {}
     order = {}
 
     lines = string.split("\n")
+
+    # Check date order, and sort lines in date order:
+    date_ascending, old_date, date1, date2 = (None, None, None,None)
+    linenum=0
+    for line in lines:
+        linenum += 1
+        line = line.strip()
+        date_m = parse_date(line)
+        if date_m:
+            if not date1:
+                date1 = date_m
+                continue
+            if not date2:
+                date2 = date_m
+                date_ascending = date2 > date1
+                old_date = date2
+                continue
+            else:
+
+                if (date_ascending and old_date >= date_m) or (
+                        not date_ascending and old_date <= date_m
+                ):
+                    myassert(
+                        False,
+                        f"PARSE ERROR (LINE: {linenum}) Dates can be incremental or decremental but not both!",
+                    )
+                old_date = date_m
+
+    linenum = 0
     for line in lines:
         line = line.strip()
         linenum += 1
+
         date_m = parse_date(line)
         if date_m:
-            new_date = date_m
-            if date:
-                if not date_ascending:
-                    date_ascending = new_date > date
-                else:
-                    if (date_ascending and new_date <= date) or (
-                            not date_ascending and new_date >= date
-                    ):
-                        myassert(
-                            new_date > date,
-                            f"PARSE ERROR (LINE: {linenum}) Dates can be incremental or decremental but not both!",
-                        )
-            date = new_date
+            date = date_m
             continue
+
         elif line.startswith("#TODO"):
             todos.append(line)
             continue
@@ -175,7 +204,7 @@ def parse_file(string):
             continue
 
         try:
-            res = parse_line(line, keys, urls, posfixes, order)
+            res = parse_line(line, aliases, urls, posfixes, order)
         except SyntaxError:
             myassert(False, f"PARSE ERROR (LINE: {linenum}):\n{line}")
         if res:
@@ -188,11 +217,19 @@ def parse_file(string):
 
             data.append([date, task, update, done])
 
+    # RESOLVE ALIASES
+    for datum in data:
+        task=datum[1]
+        tasklis = task_split(task)
+        tasklis[0] = aliases.get(tasklis[0], tasklis[0])
+        datum[1] = task_join(tasklis)
+
+
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
     df.Date = pd.to_datetime(df.Date)
 
     # add Keys (for display):
-    task_to_key = {v: k for k, v in keys.items()}
+    task_to_key = {v: k for k, v in aliases.items()}
     all_keys = [
         task_to_key[task] if task in task_to_key else None for task in df.Task.tolist()
     ]
@@ -372,6 +409,14 @@ def report_last_week(df):
     return ret
 
 
+def report_last_day(df):
+    date = _now
+    startdate = date + timedelta(days=-1)
+
+    ret = title_str(f"Yesterday: {startdate.date().isoformat()}\n\n")
+    ret += report_span(df, startdate, startdate)
+    return ret
+
 def report_this_week(df):
     date = _now
     startdate = date + timedelta(days=-date.weekday())
@@ -517,7 +562,7 @@ Commands:
     log <task>\t: list all entried for this task, in chronological order
 """
 
-    commands_list = ["log", "open", "closed", "lastweek", "span <date-start> <date-end>", "thisweek", "tasks", "todo"]
+    commands_list = ["log", "open", "closed", "yesterday", "[last]week", "thisweek", "span <date-start> <date-end>",  "tasks", "todo"]
 
     ap = argparse.ArgumentParser(
         description="(https://github.com/hugozaragoza/quick-update/blob/main/README.md)")
@@ -603,6 +648,12 @@ Commands:
         elif command == "thisweek":
             print(report_this_week(df))
 
+        elif (command == "lastweek") or (command == "week"):
+            print(report_last_week(df))
+
+        elif (command == "yesterday") or (command == "y"):
+            print(report_last_day(df))
+
         elif command == "span":
             startdate=datetime.strptime(args["commands"][i+1], '%Y-%m-%d')
             enddate=datetime.strptime(args["commands"][i+2], '%Y-%m-%d')
@@ -622,9 +673,6 @@ Commands:
         elif command == "todo":
             print(title_str("TODO"))
             print("\n".join(todos))
-
-        elif command == "week":
-            print(report_last_week(df))
 
         else:
             print(

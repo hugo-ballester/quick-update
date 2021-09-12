@@ -23,4 +23,4 @@ def test_order(file_content, des_task_order):
     df, _, _, _ = parse_file(file_content)
     df = df.sort_values("Order")
     tasks = df.Task.tolist()
-    assert des_task_order == tasks
+    assert tasks == des_task_order

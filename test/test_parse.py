@@ -3,39 +3,49 @@ from quick_update import *
 
 
 @pytest.mark.parametrize(
-    "line,des_task,des_done",
+    "line,des_task,des_update,des_done",
     [
-        ("Task one:: update", "Task one", False),
-        ("Task one:: task two:: update", task_join(("Task one", "task two")), False),
+        ("Task one:: update", "Task one", "Update.", False),
+        ("Task one:: task two:: update line", task_join(("Task one", "task two")), "Update line.", False),
         (
-            "Task one:: task two:: task three:: update (.)",
+            "Task one:: task two:: task three:: update line(.)",
             task_join(("Task one", "task two", "task three")),
+            "Update line.",
             True,
         ),
-    ],
-)
-def test_parse_oneline_tasks(line, des_task, des_done):
-    task, update, done = parse_line(line, {}, {}, {}, {})
-    assert des_task == task
-    assert des_done == done
-
-
-@pytest.mark.parametrize(
-    "line,des_update",
-    [
+        (
+                "Task one:: task two:: task three:: update line  (.)",
+                task_join(("Task one", "task two", "task three")),
+                "Update line.",
+                True,
+        ),
         (
             "task1::    update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
+            "task1",
             "Update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara.",
+            False,
+        ),
+        (
+            "task1:: subtask11::   update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
+            "task1 / subtask11",
+            "Update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara.",
+            False,
+        ),
+        (
+            "[alias1] task1:: subtask11::   update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
+            "task1 / subtask11",
+            "Update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara.",
+            False,
         ),
     ],
 )
-def test_shorthands(line, des_update):
-    aliases = {}
-    posfix = {}
-    urls = {}
-    order = {}
+def test_parse_oneline_tasks(line, des_task, des_update, des_done):
     task, update, done = parse_line(line, {}, {}, {}, {})
-    assert des_update == update, "" + des_update + "-----" + update
+    assert task == des_task
+    assert update == des_update
+    assert done == des_done
+
+
 
 
 @pytest.mark.parametrize(
