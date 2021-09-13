@@ -136,7 +136,7 @@ OPEN TASKS
   * Update description will be formatted as follows: 
     * first letter is upper-cased, a period is added at the end if it does not have one.
     * links of the form word:URL are converted to Markup's usual [word](url)
-  * Lines starting with #TODO are stored and reported. Multilines todos can be done following lines with `#- `
+  * Lines starting with #TODO are stored and reported.
   
 
 ### MISC:

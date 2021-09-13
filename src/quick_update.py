@@ -2,7 +2,7 @@
 QuickUpdate
 Hugo Zaragoza, 2020.
 
-see README.md
+see README.md for usage documentation
 
 
 """
@@ -22,7 +22,7 @@ app_name = "QuickUpdate"
 version_name = "v 0.6"
 err_pre = "INPUT DATA ERROR:"
 design_bullet = "* "
-DONE_POSFIX = ["(DONE)", "(.)"]
+DONE_KEYWORDS = ["(DONE)", "(.)"]
 TODO_PREFIX = "#TODO "
 TODO_CONT_PREFIX = "#- "
 
@@ -53,23 +53,23 @@ def parse_date(line):
 # ------------
 # INIT PARSER:
 
-TASK_SEPARATOR = "::"  # TODO parametrise
+TASK_SEPARATOR_INPUT = "::"  # TODO parametrise
 
 # REGEX expressions:
 regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-done_exp = "|".join([re.escape(x) for x in DONE_POSFIX])
-done_exp = "(?P<done> " + done_exp + ")?"
 
 # TASK LINE DEFINITION:
+done_exp = "|".join([re.escape(x) for x in DONE_KEYWORDS])
+done_exp = "(?P<done> " + done_exp + ")?"
 line_parser_rex = re.compile(
-    f"^(?P<task>[^][]+){TASK_SEPARATOR}[ \t]+(?P<update>.+?){done_exp}$"
+    f"^(?P<task>[^][]+){TASK_SEPARATOR_INPUT}[ \t]+(?P<update>.+?){done_exp}$"
 )  # need on-greedy +? so update does not swallow DONE
 
 # TASK ALIAS DEFINITION:
 # [Alias] Task::{ POSFIX:posfix:}{  ORDER:order}{ *url}
 
 alias_rex = re.compile(
-    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
+    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR_INPUT}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
 )
 
 
@@ -77,32 +77,43 @@ url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
 blank_rex = re.compile("^\\s*$")
 
+def resolve_update(update):
+    update = update.strip()
+    update = url_shorthand_rex.sub("[\\1](\\2)", update)
+    return update
+
 
 def format_update(update):
-    update = url_shorthand_rex.sub("[\\1](\\2)", update)
-
-    update = update.strip()
     if not re.match("[.!?]", update[-1]):
         update += "."
 
     update = f"{update[0].upper()}{update[1:]}"
     return update
 
+def task_split_input(tasks):
+    return re.split(f" *{TASK_SEPARATOR_INPUT} *",tasks)
 
-def task_join(tasks):
-    return " / ".join(tasks)
+def task_split_internal(tasks):
+    return tasks.split(f"{TASK_SEPARATOR_INPUT}")
 
+def task_join_internal(tasks):
+    return TASK_SEPARATOR_INPUT.join(tasks)
 
-def task_split(tasks):
-    return tasks.split(f"{TASK_SEPARATOR} ")
+def task_display(task):
+    return " / ".join(task_split_internal(task))
 
 
 def parse_line(line, aliases, urls, posfixes, order):
+    '''
+    Returns (task, update, done) if an update is encountered (aliases will not resolved yet).
+    Updates (aliases, urls, posfixes, order) if an alias is encountered
+    :return: None or  (task, update, done)
+    '''
     # PARSE
     alias = alias_rex.search(line)
     if alias:
         d = alias.groupdict()
-        task = task_join(task_split(d["task"]))
+        task = task_join_internal(task_split_input(d["task"]))
         aliases[d["key"]] = task
         if "posfix" in d and d["posfix"]:
             posfixes[task] = d["posfix"]
@@ -119,26 +130,18 @@ def parse_line(line, aliases, urls, posfixes, order):
     if line.startswith("["):  # bad alias line?
         raise SyntaxError(f"Could not parse task alias line: [{line}]")
 
-    def _parse_update_line(line, aliases):
+    def _parse_update_line(line):
         rex = line_parser_rex.search(line)
         if not rex:
             raise SyntaxError
         d = rex.groupdict()
-        tasklis = task_split(d["task"])
-        tasklis[0] = aliases.get(tasklis[0], tasklis[0])
-        task = task_join(tasklis)
-
-        # try to macth key form the left, longest first:
+        tasklis = task_split_input(d["task"])
+        task = task_join_internal(tasklis)
         done = True if d["done"] else False
-        update = format_update(d["update"])
+        update = resolve_update(d["update"])
         return task, update, done
 
-    task, update, done = _parse_update_line(line, aliases)
-    # add posfix if needed:
-    if task in posfixes:
-        line = line + " " + posfixes[task]
-        # mydebug(line)
-        task, update, done = _parse_update_line(line, aliases)
+    task, update, done = _parse_update_line(line)
 
     return task, update, done
 
@@ -183,6 +186,7 @@ def parse_file(string):
                     )
                 old_date = date_m
 
+    # Parse updates
     linenum = 0
     for line in lines:
         line = line.strip()
@@ -196,10 +200,7 @@ def parse_file(string):
         elif line.startswith("#TODO"):
             todos.append(line)
             continue
-        elif line.startswith("#- "):  # TODO continuation
-            if todos[-1].startswith("#TODO"):
-                todos[-1] += "\n" + line
-            continue
+
         elif line.startswith("#") or blank_rex.match(line):
             continue
 
@@ -217,12 +218,23 @@ def parse_file(string):
 
             data.append([date, task, update, done])
 
-    # RESOLVE ALIASES
+    # Resolve aliases an posfixes and format updates
     for datum in data:
         task=datum[1]
-        tasklis = task_split(task)
-        tasklis[0] = aliases.get(tasklis[0], tasklis[0])
-        datum[1] = task_join(tasklis)
+        tasklis = task_split_internal(task)
+        key = tasklis[0]
+        if key in aliases:
+            tasklis[0] = aliases[key]
+            datum[1] = task_join_internal(tasklis)
+        task=datum[1]
+        if task in posfixes:
+            posfix = posfixes[task]
+            if posfix  in DONE_KEYWORDS:
+                datum[3] = True
+            else:
+                datum[2] += " " + posfixes[task]
+
+        datum[2] = format_update(datum[2])
 
 
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
@@ -295,7 +307,7 @@ def format_line(
         key = f"{key:7}"
     else:
         key = ""
-    task = f"{task:30}\t" if task else ""
+    task = f"{task_display(task):30}\t" if task else ""
     ds = ''
     if date:
         ds = '(' + date_string(date) + ')'
