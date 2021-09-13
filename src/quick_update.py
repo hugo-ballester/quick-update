@@ -21,7 +21,7 @@ from utils import bold, myassert, date_string, debug, title_str, headline1, head
 app_name = "QuickUpdate"
 version_name = "v 0.6"
 err_pre = "INPUT DATA ERROR:"
-design_bullet = "* "
+design_bullet = "• "
 DONE_KEYWORDS = ["(DONE)", "(.)"]
 TODO_PREFIX = "#TODO "
 TODO_CONT_PREFIX = "#- "
@@ -314,7 +314,6 @@ def format_line(
         ds = f" {ds:s}"
     update = f": {update}" if update else ""
     prefx = "  " * (level + 1) + design_bullet
-    task = f"{task}" if task else ""
     done = "" if not display_done else " (DONE)" if done else " (...)"
     l = f"{prefx}{key}{task}{update}{done}{ds}\n"
 
@@ -423,7 +422,11 @@ def report_last_week(df):
 
 def report_last_day(df):
     date = _now
-    startdate = date + timedelta(days=-1)
+    weekday = date.weekday()
+    if weekday>0:
+        startdate = date + timedelta(days=-1)
+    else:
+        startdate = date + timedelta(days=-3)
 
     ret = title_str(f"Yesterday: {startdate.date().isoformat()}\n\n")
     ret += report_span(df, startdate, startdate)
@@ -446,12 +449,14 @@ def report_span(df, startdate, enddate):
     ret = ""
     df = df.groupby(["Order", "Task"])  # groupby order first to preserve right order
     SEP = " : "
-    for (_, name), group in df:
-        ret += design_bullet + name + SEP
+    level = 0
+    prefx = "  " * (level + 1) + design_bullet
+    for (_, task), group in df:
+        ret += prefx + task_display(task) + SEP
         if group.shape[0] > 1:
             ret += "\n"
             for index, row in group.iterrows():
-                ret += f"    {design_bullet}{row.Update}\n"
+                ret += f"{row.Update}\n"
         else:
             row = [r for i, r in group.iterrows()]
             ret += row[0].Update + "\n"
