@@ -66,10 +66,10 @@ line_parser_rex = re.compile(
 )  # need on-greedy +? so update does not swallow DONE
 
 # TASK ALIAS DEFINITION:
-# [Alias] Task::{ POSFIX:posfix:}{  ORDER:order}{ *url}
+# [Alias] Task::{ POSFIX|posfix|}{  ORDER:order}{ *url}
 
 alias_rex = re.compile(
-    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR_INPUT}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX:(?P<posfix>[^:]+):)?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
+    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR_INPUT}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX[|](?P<posfix>[^|]+)[|])?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
 )
 
 
@@ -242,16 +242,15 @@ def parse_file(string):
 
     # add Keys (for display):
     task_to_key = {v: k for k, v in aliases.items()}
-    all_keys = [
+    df["Key"] = [
         task_to_key[task] if task in task_to_key else None for task in df.Task.tolist()
     ]
-    all_order = [
+    df["Order"] = [
         order[task] + task if task in order else task for task in df.Task.tolist()
     ]
-    df["Key"] = all_keys
-    df["Order"] = all_order
+    df["URL"] = [urls[task] if task in urls else "" for task in df.Task.tolist()]
 
-    return df, todos, posfixes, date_ascending
+    return df, todos, posfixes, date_ascending, urls
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -300,7 +299,8 @@ def format_line(
         date=None,
         level=0,
         display_key=True,
-        display_done=False
+        display_done=False,
+        url=None
 ):
     if display_key:
         key = f"[{key}]" if key else " "
@@ -315,7 +315,8 @@ def format_line(
     update = f": {update}" if update else ""
     prefx = "  " * (level + 1) + design_bullet
     done = "" if not display_done else " (DONE)" if done else " (...)"
-    l = f"{prefx}{key}{task}{update}{done}{ds}\n"
+    url = "" if not url else f" URL:[link]({url})"
+    l = f"{prefx}{key}{task}{url}{update}{done}{ds}{url}\n"
 
     return l
 
@@ -336,6 +337,7 @@ def report1(
         df = df.sort_values("Date").groupby(last_only).tail(1)
     df = df.sort_values(sortby, ascending=ascending)
     df = df.groupby(groupby, sort=False)
+
     for name, group in df:
         tmp = ""
         nrows = 0
@@ -349,6 +351,7 @@ def report1(
                 level=1,
                 display_key=display_key,
                 display_done=display_done,
+                url=row.URL
             )
             nrows += 1
 
@@ -443,6 +446,10 @@ def report_this_week(df):
     ret += report_span(df, startdate, enddate)
     return ret
 
+def show_url(url):
+    if not url or len(url)==0:
+        return ""
+    return f" ([link]({url}))"
 
 def report_span(df, startdate, enddate):
     df = df[(df.Date >= str(startdate.date())) & (df.Date <= str(enddate.date()))]
@@ -456,10 +463,10 @@ def report_span(df, startdate, enddate):
         if group.shape[0] > 1:
             ret += "\n"
             for index, row in group.iterrows():
-                ret += f"{row.Update}\n"
+                ret += f"{row.Update}{show_url(row.URL)}\n"
         else:
             row = [r for i, r in group.iterrows()]
-            ret += row[0].Update + "\n"
+            ret += row[0].Update + f"{show_url(row[0].URL)}\n"
 
     return ret
 
@@ -487,7 +494,7 @@ def show_day(df, offset, title_prefix=""):
     df = df[mask]
     print(title_str(title))
     for index, row in df.iterrows():
-        print(format_line(row.Key, row.Task, row.Update, row.Date))
+        print(format_line(row.Key, row.Task, row.Update, row.Date, url=row.URL))
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -637,7 +644,7 @@ Commands:
 
     with open(file, "r") as _file:
         file_content = _file.read()
-        df, todos, posfix, _ = parse_file(file_content)
+        df, todos, posfix, date_ascending, urls = parse_file(file_content)
 
     skip=0
     for i in range(len(args["commands"])):

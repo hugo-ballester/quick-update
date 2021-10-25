@@ -46,7 +46,7 @@ CLOSED TASKS
 Another example using more features:
 ```
 [XFP] Project-X:: First Proposal::
-[11]  Management:: 1:1s:: POSFIX:(DONE): ORDER:zzz:
+[11]  Management:: 1:1s:: POSFIX|(DONE)| ORDER:zzz:
 
 #2020-01-01
 XFP:: discussed with Phoebe
@@ -130,7 +130,7 @@ OPEN TASKS
     * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
     * You can add an optional URL to be linked with every update for this (sub)task.
     * You can add an optional posfix and order prefix (prefix to be used when sorting alphabetically)
-    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX:optional_posfix: ::ORDER:optional_prefix_string:`
+    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX|optional_posfix| ::ORDER:optional_prefix_string:`
     * if you define a posfix, it will be added at the end of every update for this key (useful for tasks that you want to mark always as DONE with every update)
     * if you define an order, task alphabetical order will prefix this string (e.g. use ::ORDER:zzz: to push to the bottom)
   * Update description will be formatted as follows: 
