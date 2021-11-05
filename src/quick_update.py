@@ -99,8 +99,14 @@ def task_split_internal(tasks):
 def task_join_internal(tasks):
     return TASK_SEPARATOR_INPUT.join(tasks)
 
+def task_split_external(tasks):
+    return tasks.split(" / ")
+
+def task_join_external(tasks):
+    return " / ".join(tasks)
+
 def task_display(task, url=None):
-    task = " / ".join(task_split_internal(task))
+    task = task_join_external(task_split_internal(task))
     if url and len(url)>0:
         task = f"[{task}]({url})"
     return task
@@ -253,7 +259,7 @@ def parse_file(string):
     ]
     df["URL"] = [urls[task] if task in urls else "" for task in df.Task.tolist()]
 
-    return df, todos, posfixes, date_ascending, urls
+    return df, todos, posfixes, date_ascending, aliases
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -344,22 +350,6 @@ def add_date_to_file(file, now):
 # ------------------------------------------------------------------------------------------------------------
 
 
-def run_tests(df):
-    #    print(df)
-    #    print(report_tasks(df))
-    print(df)
-    # print(report_tasks(df))
-    print(reports.report_open_tasks(df))
-
-
-#    print(report_closed_tasks(df))
-#    print(show_done_tasks(df))
-#    show_day(df, 1)
-
-#   print("WEEKLY --------------")
-#   print(report_last_week(df))
-
-
 
 _now = datetime.now()
 
@@ -403,6 +393,11 @@ Commands:
         required=False,
         help="Use a different date for today (for reports relative to today). Use format %%Y-%%m-%%d",
     )
+    ap.add_argument(
+        "--task",
+        required=False,
+        help="Filter to only this task (or task alias)",
+    )
     args = vars(ap.parse_args())
 
     if "help" in args["commands"]:
@@ -438,7 +433,15 @@ Commands:
 
     with open(file, "r") as _file:
         file_content = _file.read()
-        df, todos, posfix, date_ascending, urls = parse_file(file_content)
+        df, todos, posfix, date_ascending, aliases = parse_file(file_content)
+
+    if args['task']:
+        task = args['task']
+        if task in aliases:
+            task = aliases[task]
+        task2 = task_join_internal(task_split_external(task))
+        df = df[(df.Task==task)|(df.Task==task2)]
+        print(f"FILTERING BY task==[{task}] ({len(df)}  rows)")
 
     skip=0
     for i in range(len(args["commands"])):
@@ -447,11 +450,8 @@ Commands:
             continue;
 
         command = args["commands"][i]
-        if command == "test":
-            run_tests(df)
 
-        elif command == "all":
-            print(reports.report_last_days(df))
+        if command == "all":
             print(reports.report_open_tasks(df))
             print(reports.report_this_week(df))
             print(reports.report_last_week(df))
@@ -464,13 +464,13 @@ Commands:
             print(reports.report_log(df, task))
 
         elif command == "thisweek":
-            print(reports.report_this_week(df))
+            print(reports.report_this_week(df, _now))
 
         elif (command == "lastweek") or (command == "week"):
-            print(reports.report_last_week(df))
+            print(reports.report_last_week(df, _now))
 
         elif (command == "yesterday") or (command == "y"):
-            print(reports.report_last_day(df))
+            print(reports.report_last_day(df, _now))
 
         elif command == "span":
             startdate=datetime.strptime(args["commands"][i+1], '%Y-%m-%d')

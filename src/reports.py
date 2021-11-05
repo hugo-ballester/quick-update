@@ -1,9 +1,7 @@
 from datetime import timedelta, datetime
 
 from quick_update import open_tasks, closed_tasks, task_display, _now
-from utils import title_str, date_string
-
-
+from utils import title_str, date_string, debug
 
 design_bullet = "  * "
 
@@ -128,8 +126,7 @@ def report_closed_tasks(df, title="CLOSED TASKS:"):
     return ret
 
 
-def report_last_week(df):
-    date = _now
+def report_last_week(df, date):
     startdate = date + timedelta(days=-date.weekday(), weeks=-1)
     enddate = startdate + timedelta(days=6)
     weekno = startdate.isocalendar()[1]
@@ -140,8 +137,7 @@ def report_last_week(df):
     return ret
 
 
-def report_last_day(df):
-    date = _now
+def report_last_day(df, date):
     weekday = date.weekday()
     if weekday>0:
         startdate = date + timedelta(days=-1)
@@ -152,8 +148,7 @@ def report_last_day(df):
     ret += report_span(df, startdate, startdate)
     return ret
 
-def report_this_week(df):
-    date = _now
+def report_this_week(df, date):
     startdate = date + timedelta(days=-date.weekday())
     enddate = startdate + timedelta(days=6)
     weekno = startdate.isocalendar()[1]
@@ -170,6 +165,9 @@ def show_url(url):
 
 def report_span(df, startdate, enddate):
     df = df[(df.Date >= str(startdate.date())) & (df.Date <= str(enddate.date()))]
+    return report(df)
+
+def report(df):
     ret = ""
     df = df.groupby(["Order", "Task", "URL"])  # groupby order first to preserve right order
     SEP = " : "
@@ -187,28 +185,4 @@ def report_span(df, startdate, enddate):
 
     return ret
 
-
-def report_last_days(df):
-    ret = title_str("LAST TASKS") + "\n"
-    for i in range(0, 3):
-        date = _now + timedelta(days=-i)
-        dft = df[(df.Date == str(date.date()))]
-        datestr = f"{date.date().year} / {date.date().month} / {date.date().day}"
-        ret += f"Day {datestr}\n"
-        ret += report1(
-            dft, "Task", display_key=False, display_done=True, last_only=None
-        )
-    return ret
-
-
-def show_day(df, offset, title_prefix=""):
-    start_date = datetime.strftime(_now - timedelta(offset), "%Y-%m-%d")
-    end_date = datetime.strftime(_now + timedelta(1), "%Y-%m-%d")
-    title = f"{title_prefix}{start_date} - {end_date}:"
-
-    mask = (df["Date"] >= start_date) & (df["Date"] <= end_date)
-    df = df[mask]
-    print(title_str(title))
-    for index, row in df.iterrows():
-        print(format_line(row.Key, row.Task, row.Update, row.Date, url=row.URL))
 
