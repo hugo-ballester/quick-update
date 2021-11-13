@@ -7,20 +7,23 @@ see README.md for usage documentation
 
 """
 import argparse
-from datetime import timedelta, datetime
+from datetime import datetime
 import os
 import pandas as pd
 import re
 import shutil
 
-from utils import bold, myassert, debug, title_str, headline1, headline2
-
+from parsing import *
+from utils import myassert, debug
 import reports
+import renderer
+
+
 # ------------------------------------------------------------------------------------------------------------
 # DESIGN
 # ------------------------------------------------------------------------------------------------------------
 app_name = "QuickUpdate"
-version_name = "v 0.6"
+version_name = "v1.1"
 err_pre = "INPUT DATA ERROR:"
 DONE_KEYWORDS = ["(DONE)", "(.)"]
 TODO_PREFIX = "#TODO "
@@ -53,7 +56,6 @@ def parse_date(line):
 # ------------
 # INIT PARSER:
 
-TASK_SEPARATOR_INPUT = "::"  # TODO parametrise
 
 # REGEX expressions:
 regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -82,7 +84,6 @@ def resolve_update(update):
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
     return update
 
-
 def format_update(update):
     if not re.match("[.!?]", update[-1]):
         update += "."
@@ -90,26 +91,7 @@ def format_update(update):
     update = f"{update[0].upper()}{update[1:]}"
     return update
 
-def task_split_input(tasks):
-    return re.split(f" *{TASK_SEPARATOR_INPUT} *",tasks)
 
-def task_split_internal(tasks):
-    return tasks.split(f"{TASK_SEPARATOR_INPUT}")
-
-def task_join_internal(tasks):
-    return TASK_SEPARATOR_INPUT.join(tasks)
-
-def task_split_external(tasks):
-    return tasks.split(" / ")
-
-def task_join_external(tasks):
-    return " / ".join(tasks)
-
-def task_display(task, url=None):
-    task = task_join_external(task_split_internal(task))
-    if url and len(url)>0:
-        task = f"[{task}]({url})"
-    return task
 
 
 def parse_line(line, aliases, urls, posfixes, order):
@@ -262,39 +244,6 @@ def parse_file(string):
     return df, todos, posfixes, date_ascending, aliases
 
 
-# ------------------------------------------------------------------------------------------------------------
-# FILTERS:
-# ------------------------------------------------------------------------------------------------------------
-
-
-def start_dates(data):
-    df = data
-    df = df.sort_values(by=["Date"]).groupby(["Task"]).head(1)
-    return df
-
-
-def end_dates(data):
-    return closed_tasks(data)
-
-
-def open_tasks(data):
-    df = data
-    if _now:
-        df = df[(df["Date"] <= _now)]
-    df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"] == False)]
-    return df
-
-
-def closed_tasks(data):
-    df = data
-    if _now:
-        df = df[(df["Date"] <= _now)]
-    df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"])]
-    return df
-
-
 
 # ------------------------------------------------------------------------------------------------------------
 # FILE MANIPULATION
@@ -350,30 +299,12 @@ def add_date_to_file(file, now):
 # ------------------------------------------------------------------------------------------------------------
 
 
-
 _now = datetime.now()
 
 def main():
+    commands_list = ["log", "open", "closed", "y[esterday]", "today", "[last]week", "thisweek", "span <date-start> <date-end>",  "tasks", "todo"]
 
-    help_msg = """
-Commands: 
-    help\t: this message
-    tasks\t: list all tasks abbreviations
-    todo\t: list todos    
-
-    open\t: list last entry of each open tasks
-    closed\t: list last entry of each closed task
-    lastweek\t: list last entry for each task worked on last week
-    thisweek\t: list last entry for each task worked on this week
-    span <date1> <date2>\t: list last entry for each task worked on in this span
-
-    log <task>\t: list all entried for this task, in chronological order
-"""
-
-    commands_list = ["log", "open", "closed", "yesterday", "[last]week", "thisweek", "span <date-start> <date-end>",  "tasks", "todo"]
-
-    ap = argparse.ArgumentParser(
-        description="(https://github.com/hugozaragoza/quick-update/blob/main/README.md)")
+    ap = argparse.ArgumentParser(description=f"QuickUpdate {version_name}: https://github.com/hugozaragoza/quick-update")
 
     ap.add_argument(
         "commands",
@@ -381,6 +312,7 @@ Commands:
         nargs="+",
         help= ", ".join(commands_list),
     )
+
     ap.add_argument(
         "-f",
         "--update_file",
@@ -399,29 +331,12 @@ Commands:
         help="Filter to only this task (or task alias)",
     )
     args = vars(ap.parse_args())
-
-    if "help" in args["commands"]:
-        ap.print_help()
-        print(help_msg)
-        return
-
     file = args["update_file"]
 
-    print(
-        bold(
-            f"\n\n{headline1}\n{headline1}\n{headline1}\n{app_name} {version_name}\n{headline2}\n"
-        )
-    )
-    print(f"UPDATE FILE: {file}")
     if (args['now']):
         global _now
         _now = datetime.strptime(args['now'], '%Y-%m-%d')
-        print("WARNING: NOW is set to " + str(_now))
-
-    print()
-
-    if args["commands"] == ["all"]:
-        args["commands"] = commands_list
+       # print("WARNING: NOW is set to " + str(_now))
 
     if "edit" in args["commands"]:
         add_date_to_file(file, _now)
@@ -451,53 +366,57 @@ Commands:
 
         command = args["commands"][i]
 
-        if command == "all":
-            print(reports.report_open_tasks(df))
-            print(reports.report_this_week(df))
-            print(reports.report_last_week(df))
-            print(reports.report_tasks(df, posfix))
-            print(reports.report_tasks(df))
-
-        elif command == "log":
+        if command == "log":
             task = args["commands"][i+1]
             skip+=1
             print(reports.report_log(df, task))
 
+        elif command == "all":
+            title, txt = reports.report_span(df, None, None)
+            renderer.printAndCopy(txt, title)
+            skip += 2
+
         elif command == "thisweek":
-            print(reports.report_this_week(df, _now))
+            title, txt = reports.report_this_week(df, _now)
+            renderer.printAndCopy(txt, title)
 
         elif (command == "lastweek") or (command == "week"):
-            print(reports.report_last_week(df, _now))
+            title, txt = reports.report_last_week(df, _now)
+            renderer.printAndCopy(txt, title)
 
         elif (command == "yesterday") or (command == "y"):
-            print(reports.report_last_day(df, _now))
+            title, txt = reports.report_last_day(df, _now)
+            renderer.printAndCopy(txt, title)
+
+        elif (command == "today"):
+            title, txt = reports.report_today(df, _now)
+            renderer.printAndCopy(txt, title)
 
         elif command == "span":
             startdate=datetime.strptime(args["commands"][i+1], '%Y-%m-%d')
             enddate=datetime.strptime(args["commands"][i+2], '%Y-%m-%d')
-            print(title_str(f"SPAN: {startdate:%Y-%m-%d} - {enddate:%Y-%m-%d}\n\n"))
-            print(reports.report_span(df, startdate,enddate))
+            title, txt = reports.report_span(df, startdate,enddate)
+            renderer.printAndCopy(txt, title)
             skip+=2
 
         elif command == "open":
-            print(reports.report_open_tasks(df, title=bold("OPEN TASKS")))
+            renderer.printAndCopy(reports.report_open_tasks(df), "OPEN TASKS")
 
         elif command == "closed":
-            print(reports.report_closed_tasks(df, bold("CLOSED TASKS")))
+            renderer.printAndCopy(reports.report_closed_tasks(df), "CLOSED TASKS")
 
         elif command == "tasks":
-            print(reports.report_tasks(df, posfix))
+            renderer.printAndCopy(reports.report_tasks(df, posfix),"TASKS")
 
         elif command == "todo":
-            print(title_str("TODO"))
-            print("\n".join(todos))
+            out="\n".join(todos)
+            renderer.printAndCopy(out, "TODO")
 
         else:
             print(
                 f"UNKNOWN COMMAND [{command}]. DEFINED COMMANDS: {', '.join(commands_list)}"
             )
 
-    print(bold(f"\n{headline1}\n\n"))
 
 
 if __name__ == "__main__":

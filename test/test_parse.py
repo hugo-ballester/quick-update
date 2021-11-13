@@ -1,5 +1,9 @@
+from datetime import datetime
+
 import pytest
-from quick_update import *
+
+from quick_update import task_join_internal, parse_line, parse_file
+from reports import open_tasks
 
 
 @pytest.mark.parametrize(
@@ -60,7 +64,7 @@ def test_parse_oneline_tasks(line, des_task, des_update, des_done):
             {},
         ),
         (
-            "[Alias two]    Task one:: task two:: POSFIX:blah blah:",
+            "[Alias two]    Task one:: task two:: POSFIX|blah blah|",
             {"Alias two": task_join_internal(("Task one", "task two"))},
             {},
             {task_join_internal(("Task one", "task two")): "blah blah"},
@@ -74,21 +78,21 @@ def test_parse_oneline_tasks(line, des_task, des_update, des_done):
             {},
         ),
         (
-            "[Alias one] Task one:: POSFIX:my posfix here:",
+            "[Alias one] Task one:: POSFIX|my posfix here|",
             {"Alias one": "Task one"},
             {},
             {"Task one": "my posfix here"},
             {},
         ),
         (
-            "[Alias one] Task one:: http://test.com POSFIX:my posfix here: ORDER:z:",
+            "[Alias one] Task one:: http://test.com POSFIX|my posfix here| ORDER:z:",
             {"Alias one": "Task one"},
             {"Task one": "http://test.com"},
             {"Task one": "my posfix here"},
             {"Task one": "z"},
         ),
         (
-            "[BRR] Book Research:: Reading::		POSFIX:(DONE):",
+            "[BRR] Book Research:: Reading::		POSFIX|(DONE)|",
             {"BRR": task_join_internal(["Book Research","Reading"])},
             {},
             {task_join_internal(["Book Research","Reading"]): "(DONE)"},
@@ -118,7 +122,7 @@ def test_parse_alias_expressions(line, des_alias, des_urls, des_posfix, des_orde
     ],
 )
 def test_parse_date(file_content, des_date):
-    df, _, _, _ = parse_file(file_content)
+    df, _, _, _, _ = parse_file(file_content)
     assert 1 == df.shape[0]
     assert df.iloc[0]["Date"] == datetime.strptime(des_date, '%Y-%m-%d').date()
 
@@ -129,9 +133,9 @@ def test_parse_date(file_content, des_date):
         #Basic:
         ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "Update.", False),
         #Basic with DONE:
-        ("# 2001-01-01\n[T1] task1:: POSFIX:(DONE):\nT1:: update", "task1", "Update.", True),
+        ("# 2001-01-01\n[T1] task1:: POSFIX|(DONE)|\nT1:: update", "task1", "Update.", True),
         (
-            "# 2001-01-01\n[T1] task1:: POSFIX:my posfix!:\nT1:: update",
+            "# 2001-01-01\n[T1] task1:: POSFIX|my posfix!|\nT1:: update",
             "task1",
             "Update my posfix!", False
         ),
@@ -150,7 +154,7 @@ def test_parse_date(file_content, des_date):
     ],
 )
 def test_parse_alias_replacements(file_content, des_task, des_update, des_done):
-    df, _, _, _ = parse_file(file_content)
+    df, _, _, _, _ = parse_file(file_content)
     assert 1 == df.shape[0]
     assert df.iloc[0]["Task"] == des_task
     assert df.iloc[0]["Update"] == des_update
@@ -206,7 +210,7 @@ task1:: task1sub1:: update 1-1_1
     ],
 )
 def test_parse_completion(lines, des_open_tasks):
-    df, _, _, _ = parse_file(lines)
+    df, _, _, _, _ = parse_file(lines)
     df = open_tasks(df)
     assert len(des_open_tasks) == df.shape[0]
     i = 0
