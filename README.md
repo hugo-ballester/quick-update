@@ -2,9 +2,10 @@
 
 Keep track of your work in a simple text file, generate reports from it (last week, currently open, etc.)
 
-Some extra nice features:
+Some nice features:
   * quickly write updates of hierarchical tasks, easily including hyperlinks
   * report completed and open tasks, report elapsed time since beginning of a task
+  * reports automatically copy its content to the clipboard in MarkDown format
 
 
 Alpha release, hugo@hugo-zaragoza.net
@@ -22,31 +23,22 @@ Project Two:: Infra:: Data Pipelne:: design doc completed
 Project Two:: Infra:: AWS Set-up:: completed (.)
 ```
 ```
-> python src/sample_update.txt -f update.txt open
+> alias qu="python src/sample_update.txt -f update.txt"
+> qu open
 
-================================================================================================================================================================
-================================================================================================================================================================
-================================================================================================================================================================
-QuickUpdate v 0.3.0
-________________________________________________________________________________________________________________________________________________________________
+_________________________________________________________________________________
 
-UPDATE FILE: sample_update.txt
-
-________________________________________________________________________________________________________________________________________________________________
 OPEN TASKS
-    * Project One / Documentation   	: Working on chapter one. (2m)
-    * Project Two / Infra / Data Pipelne	: Design doc completed. (2m)
+      ◯ Project One / Documentation   	: Working on chapter one. (13m)
+      ◯ Project Two / Infra / Data Pipelne	: Design doc completed. (13m)
 
-________________________________________________________________________________________________________________________________________________________________
-CLOSED TASKS
-    * Project Two / Infra / AWS Set-up	: Completed .
-
-================================================================================================================================================================
+_________________________________________________________________________________
 ```
+
 Another example using more features:
 ```
 [XFP] Project-X:: First Proposal::
-[11]  Management:: 1:1s:: POSFIX|(DONE)| ORDER:zzz:
+[11]  Management:: 1:1s:: POSFIX<(DONE)> ORDER<zzz>
 
 #2020-01-01
 XFP:: discussed with Phoebe
@@ -63,63 +55,49 @@ Another Top Level Task:: shipped documentation SIM:https://blah.com (.)
 #TODO think about new directions:
 ```
 ```
-> python src/sample_update.txt -f update.txt week
-
-================================================================================================================================================================
-================================================================================================================================================================
-================================================================================================================================================================
-QuickUpdate v 0.3.0
-________________________________________________________________________________________________________________________________________________________________
-
-UPDATE FILE: sample_update.txt
-WARNING: NOW is set to 2020-01-13 00:00:00
-
-________________________________________________________________________________________________________________________________________________________________
-Last Week #2: 2020 / 1 / 6-12
-
-* Another Top Level Task : Shipped documentation [SIM](https://blah.com) .
-* Project-X / First Proposal :
-    * Discussed with Phoebe.
-    * Drew data flow diagrams.
-* Project-X / First Proposal / Legal : Cleared with legal.
-* Project-X / Recruiting : Contacted 20 canidates.
-* Management / 1:1s : Met with Rachel.
-
-
-================================================================================================================================================================
-
-> python src/sample_update.txt -f update.txt open
-
-================================================================================================================================================================
-================================================================================================================================================================
-================================================================================================================================================================
-QuickUpdate v 0.3.0
-________________________________________________________________________________________________________________________________________________________________
-
-UPDATE FILE: sample_update.txt
-WARNING: NOW is set to 2020-01-13 00:00:00
-
-________________________________________________________________________________________________________________________________________________________________
+>qu open
+_________________________________________________________________________________
 OPEN TASKS
-    * Project-X / First Proposal    	: Drew data flow diagrams.
-    * Project-X / Recruiting        	: Contacted 20 canidates.
+      ◯ Project-X / First Proposal    	: Drew data flow diagrams. (22m)
+      ◯ Project-X / Recruiting        	: Contacted 20 canidates. (22m)
+_________________________________________________________________________________
 
+>qu --now 2020-01-01 thisweek
+_________________________________________________________________________________
 
-================================================================================================================================================================
+This Week #1: 2020 / 1 / 30-5
+  ◯ Another Top Level Task :
+    ◯ Shipped documentation [SIM](https://blah.com).  ✓
+  ◯ Project-X / First Proposal :
+    ◯ Discussed with Phoebe.
+    ◯ Drew data flow diagrams.
+  ◯ Project-X / First Proposal / Legal :
+    ◯ Cleared with legal.  ✓
+  ◯ Project-X / Recruiting :
+    ◯ Contacted 20 canidates.
+  ◯ Management / 1:1s :
+    ◯ Met with Rachel.  ✓
+_________________________________________________________________________________
 
+>qu --help
+
+usage: quick_update.py [-h] -f UPDATE_FILE [--now NOW] [--task TASK] commands [commands ...]
+
+QuickUpdate v1.1: https://github.com/hugozaragoza/quick-update
+
+positional arguments:
+  commands              log, open, closed, y[esterday], today, [last]week, thisweek, span <date-start> <date-end>, tasks, todo
+  
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f UPDATE_FILE, --update_file UPDATE_FILE
+                        Update file
+  --now NOW             Use a different date for today (for reports relative to today). Use format %Y-%m-%d
+  --task TASK           Filter to only this task (or task alias)
 
 ```
 
-### REPORTS AVAILABLE:
-  * Ongoing Work
-  * Work done last Week
-  * Work done in Current Week
-  * Open Tasks
-  * Closed Tasks
-  * TODOs
-  * Task Aliases
-  
-  Do --help to see all commands and options
 
 ### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
@@ -130,7 +108,7 @@ OPEN TASKS
     * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
     * You can add an optional URL to be linked with every update for this (sub)task.
     * You can add an optional posfix and order prefix (prefix to be used when sorting alphabetically)
-    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX|optional_posfix| ::ORDER:optional_prefix_string:`
+    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX<optional_posfix> ORDER<optional_order_prefix_string>`
     * if you define a posfix, it will be added at the end of every update for this key (useful for tasks that you want to mark always as DONE with every update)
     * if you define an order, task alphabetical order will prefix this string (e.g. use ::ORDER:zzz: to push to the bottom)
   * Update description will be formatted as follows: 
