@@ -80,14 +80,12 @@ This Week #1: 2020 / 1 / 30-5
 _________________________________________________________________________________
 
 >qu --help
-
 usage: quick_update.py [-h] -f UPDATE_FILE [--now NOW] [--task TASK] commands [commands ...]
 
 QuickUpdate v1.1: https://github.com/hugozaragoza/quick-update
 
 positional arguments:
-  commands              log, open, closed, y[esterday], today, [last]week, thisweek, span <date-start> <date-end>, tasks, todo
-  
+  commands              log, open, standby, closed, y[esterday], today, thisweek, [last]week, <k>weeks, span <date-start> <date-end>, tasks, todo
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -95,7 +93,6 @@ optional arguments:
                         Update file
   --now NOW             Use a different date for today (for reports relative to today). Use format %Y-%m-%d
   --task TASK           Filter to only this task (or task alias)
-
 ```
 
 
@@ -103,7 +100,8 @@ optional arguments:
   * Being an update block with a date heading: `# 2020-01-01`
   * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
   * You can add or remove sub task levels at any line.
-  * A task is marked as done by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
+  * A task is marked as "done" by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
+  * A task is marked as "standby" by adding '(STANDBY)' or '(o)' in its update. It can be reopened simply by adding a new update
   * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```ALIAS:: your update``` 
     * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
     * You can add an optional URL to be linked with every update for this (sub)task.

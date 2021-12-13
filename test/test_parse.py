@@ -3,43 +3,43 @@ from datetime import datetime
 import pytest
 
 from quick_update import task_join_internal, parse_line, parse_file
-from reports import open_tasks
+from reports import completion_tasks
 
 
 @pytest.mark.parametrize(
     "line,des_task,des_update,des_done",
     [
-        ("Task one:: update", "Task one", "update", False),
-        ("Task one:: task two:: update line", task_join_internal(("Task one", "task two")), "update line", False),
+        ("Task one:: update", "Task one", "update", None),
+        ("Task one:: task two:: update line", task_join_internal(("Task one", "task two")), "update line", None),
         (
             "Task one:: task two:: task three:: update line(.)",
             task_join_internal(("Task one", "task two", "task three")),
             "update line",
-            True,
+            "DONE",
         ),
         (
                 "Task one:: task two:: task three:: update line  (.)",
                 task_join_internal(("Task one", "task two", "task three")),
                 "update line",
-                True,
+                "DONE",
         ),
         (
             "task1::    update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
             "task1",
             "update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara",
-            False,
+            None,
         ),
         (
             "task1:: subtask11::   update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
             task_join_internal(["task1","subtask11"]),
             "update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara",
-            False,
+            None,
         ),
         (
             "[alias1] task1:: subtask11::   update CAPITALS 1_1 SIM:https://blah.com/blah?1&2 tarara",
             "alias1",
             "update CAPITALS 1_1 [SIM](https://blah.com/blah?1&2) tarara",
-            False,
+            None,
         ),
     ],
 )
@@ -64,7 +64,7 @@ def test_parse_oneline_tasks(line, des_task, des_update, des_done):
             {},
         ),
         (
-            "[Alias two]    Task one:: task two:: POSFIX|blah blah|",
+            "[Alias two]    Task one:: task two:: POSFIX<blah blah>",
             {"Alias two": task_join_internal(("Task one", "task two"))},
             {},
             {task_join_internal(("Task one", "task two")): "blah blah"},
@@ -78,21 +78,21 @@ def test_parse_oneline_tasks(line, des_task, des_update, des_done):
             {},
         ),
         (
-            "[Alias one] Task one:: POSFIX|my posfix here|",
+            "[Alias one] Task one:: POSFIX<my posfix here>",
             {"Alias one": "Task one"},
             {},
             {"Task one": "my posfix here"},
             {},
         ),
         (
-            "[Alias one] Task one:: http://test.com POSFIX|my posfix here| ORDER:z:",
+            "[Alias one] Task one:: http://test.com POSFIX<my posfix here> ORDER<z>",
             {"Alias one": "Task one"},
             {"Task one": "http://test.com"},
             {"Task one": "my posfix here"},
             {"Task one": "z"},
         ),
         (
-            "[BRR] Book Research:: Reading::		POSFIX|(DONE)|",
+            "[BRR] Book Research:: Reading::		POSFIX<(DONE)>",
             {"BRR": task_join_internal(["Book Research","Reading"])},
             {},
             {task_join_internal(["Book Research","Reading"]): "(DONE)"},
@@ -131,25 +131,25 @@ def test_parse_date(file_content, des_date):
     "file_content,des_task, des_update, des_done",
     [
         #Basic:
-        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "Update.", False),
+        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "Update.", None),
         #Basic with DONE:
-        ("# 2001-01-01\n[T1] task1:: POSFIX|(DONE)|\nT1:: update", "task1", "Update.", True),
+        ("# 2001-01-01\n[T1] task1:: POSFIX<(DONE)>\nT1:: update", "task1", "Update.", "DONE"),
         (
-            "# 2001-01-01\n[T1] task1:: POSFIX|my posfix!|\nT1:: update",
+            "# 2001-01-01\n[T1] task1:: POSFIX<my posfix!>\nT1:: update",
             "task1",
-            "Update my posfix!", False
+            "Update my posfix!", None
         ),
         #update with extended task:
         (
             "# 2001-01-01\n[T1] task1:: task2::\nT1:: task 3:: update",
             task_join_internal(("task1", "task2", "task 3")),
-            "Update.", False
+            "Update.", None
         ),
         #update with extended task, alias comes later:
         (
             "# 2001-01-01\nT1:: task 3:: update\n[T1] task1:: task2::",
             task_join_internal(("task1", "task2", "task 3")),
-            "Update.", False
+            "Update.", None
         ),
     ],
 )
@@ -161,7 +161,7 @@ def test_parse_alias_replacements(file_content, des_task, des_update, des_done):
     assert df.iloc[0]["Done"] == des_done
 
 @pytest.mark.parametrize(
-    "lines,des_open_tasks",
+    "lines,des_open_tasks,des_standby_tasks",
     [
         (
             """# example 1
@@ -170,7 +170,7 @@ task1:: update 1_1
 task1:: update 1_2
 task1:: update 1_2
 """,
-            ["task1"],
+            ["task1"],[],
         ),
         (
             """# example 2
@@ -178,25 +178,24 @@ task1:: update 1_2
 task1:: update 1_1
 task1::     update 1_2 (DONE)
 """,
-            [],
+            [],[]
         ),
         (
             """# example 3
 # 2020-01-01
 task1:: update 1_1
-task1:: update 1_2 (DONE)
 task1:: update 1_2 (.)
 """,
-            [],
+            [],[]
         ),
         (
             """# example 4
 # 2020-01-01
 task1:: update 1_1
-task1:: update 1_2 (DONE)
 task1:: update 1_3
+task2:: update 1_2 (o)
 """,
-            ["task1"],
+            ["task1"],["task2"]
         ),
         (
             """# example 5
@@ -205,20 +204,22 @@ task1:: update 1_1
 task1:: update 1_2 (DONE)
 task1:: task1sub1:: update 1-1_1
 """,
-            [task_join_internal(("task1", "task1sub1"))],
+            [task_join_internal(("task1", "task1sub1"))],[]
         ),
     ],
 )
-def test_parse_completion(lines, des_open_tasks):
+def test_parse_completion(lines, des_open_tasks, des_standby_tasks):
+    def check(df,des):
+        assert len(des) == df.shape[0]
+        i = 0
+        for t in des:
+            assert t == df.iloc[i]["Task"]
+            i += 1
     df, _, _, _, _ = parse_file(lines)
-    df = open_tasks(df)
-    assert len(des_open_tasks) == df.shape[0]
-    i = 0
-    for t in des_open_tasks:
-        print(t)
-        print(type(t))
-        assert t == df.iloc[i]["Task"]
-        i += 1
+    dfOpen = completion_tasks(df,None) # open
+    check(dfOpen,des_open_tasks)
+    dfStandby = completion_tasks(df,"STANDBY") # open
+    check(dfStandby,des_standby_tasks)
 
 
 def show(str):

@@ -1,4 +1,4 @@
-import subprocess
+import calendar
 from datetime import timedelta, datetime
 
 
@@ -113,8 +113,8 @@ def report_tasks(df, posfix):
     return ret
 
 
-def report_open_tasks(df):
-    df = open_tasks(df)
+def report_completion_tasks(df, completion_value=None, today=None):
+    df = completion_tasks(df,completion_value,today)
     ret = report1(df, groupby="Task", display_date=True, display_key=False, last_only="Task", sortby="Order",
                    ascending=True)
     return ret
@@ -132,38 +132,12 @@ def report_log(df, task):
 
 def report_closed_tasks(df):
     global _now
-    df = closed_tasks(df, _now)
+
+    df = completion_tasks(df, "DONE", today=_now)
     ret = report1(df, groupby="Task", display_date=False, display_key=False, last_only="Task", sortby="Order",
                    ascending=True)
     report_span()
     return ret
-
-
-def report_last_week(df, date):
-    startdate = date + timedelta(days=-date.weekday(), weeks=-1)
-    enddate = startdate + timedelta(days=6)
-    weekno = startdate.isocalendar()[1]
-    datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
-
-    title = f"Last Week #{weekno}: {datestr}"
-    _, txt = report_span(df, startdate, enddate)
-    return title,txt
-
-def report_today(df, date):
-    title = f"Today ({date.date().isoformat()}):"
-    _, txt = report_span(df, date, date)
-    return title, txt
-
-def report_last_day(df, date):
-    weekday = date.weekday()
-    if weekday>0:
-        startdate = date + timedelta(days=-1)
-    else:
-        startdate = date + timedelta(days=-3)
-
-    title = f"Yesterday ({startdate.date().isoformat()}):"
-    _, txt = report_span(df, startdate, startdate)
-    return title, txt
 
 def report_this_week(df, date):
     startdate = date + timedelta(days=-date.weekday())
@@ -174,6 +148,36 @@ def report_this_week(df, date):
     title = f"This Week #{weekno}: {datestr}"
     _, txt = report_span(df, startdate, enddate, force_subbullets=True)
     return title,txt
+
+def report_last_week(df, date, weeks=1):
+    startdate = date + timedelta(days=-date.weekday(), weeks=-weeks)
+    enddate = startdate + timedelta(days=(7*weeks)-1)
+    weekno = startdate.isocalendar()[1]
+    datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
+
+    if weeks==1:
+        title = f"Last Week #{weekno}: {datestr}"
+    else:
+        title = f"Last {weeks} Weeks: {datestr}"
+    _, txt = report_span(df, startdate, enddate)
+    return title,txt
+
+def report_today(df, date):
+    title = f"Today {date.date().isoformat()}:"
+    _, txt = report_span(df, date, date)
+    return title, txt
+
+def report_last_day(df, date):
+    weekday = date.weekday()
+    if weekday>0:
+        startdate = date + timedelta(days=-1)
+    else:
+        startdate = date + timedelta(days=-3)
+    title=calendar.day_name[startdate.weekday()]
+    title = f"{title} {startdate.date().isoformat()}:"
+    _, txt = report_span(df, startdate, startdate)
+    return title, txt
+
 
 def show_url(url):
     if not url or len(url)==0:
@@ -233,26 +237,18 @@ def start_dates(data):
 
 def end_dates(data):
     global _now
-    return closed_tasks(data, _now)
+    return completion_tasks(data, "DONE", today=_now)
 
 
-def open_tasks(data, today=None):
+def completion_tasks(data, completion_value, today=None):
     df = data
     if today:
         df = df[(df["Date"] <= today)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"] == False)]
-    return df
-
-
-def closed_tasks(data, today=None):
-    df = data
-    if today:
-        df = df[(df["Date"] <= today)]
-    df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
-    df = df[(df["Done"])]
-    return df
-
+    if completion_value is None:
+        return df[(df["Done"] != "DONE")&(df["Done"] != "STANDBY")]
+    else:
+        return df[(df["Done"] == completion_value)]
 
 
 

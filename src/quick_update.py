@@ -26,6 +26,8 @@ app_name = "QuickUpdate"
 version_name = "v1.1"
 err_pre = "INPUT DATA ERROR:"
 DONE_KEYWORDS = ["(DONE)", "(.)"]
+STANDBY_KEYWORDS = ["(STANDBY)","(o)"]
+DONE_OR_STANDBY_KEYWORDS = DONE_KEYWORDS+STANDBY_KEYWORDS
 TODO_PREFIX = "#TODO "
 TODO_CONT_PREFIX = "#- "
 
@@ -61,7 +63,7 @@ def parse_date(line):
 regex_url = r"\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
 # TASK LINE DEFINITION:
-done_exp = "|".join([re.escape(x) for x in DONE_KEYWORDS])
+done_exp = "|".join([re.escape(x) for x in DONE_OR_STANDBY_KEYWORDS])
 done_exp = "(?P<done> " + done_exp + ")?"
 line_parser_rex = re.compile(
     f"^(?P<task>[^][]+){TASK_SEPARATOR_INPUT}[ \t]+(?P<update>.+?){done_exp}$"
@@ -71,7 +73,7 @@ line_parser_rex = re.compile(
 # [Alias] Task::{ POSFIX|posfix|}{  ORDER:order}{ *url}
 
 alias_rex = re.compile(
-    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR_INPUT}[ \t]*(?P<url>{regex_url})?[ \t]*(?:POSFIX[|](?P<posfix>[^|]+)[|])?[ \t]*(?:ORDER:(?P<order>[^:]+):)?[ \t]*(?P<update>.+?)?{done_exp}$"
+    f"(?i)^\\[(?P<key>[^]]+)?\\][ \t]+(?P<task>.+){TASK_SEPARATOR_INPUT}[ \t]*(?P<url>{regex_url})?[ \t]*(?:DESC<(?P<desc>[^>]+)>)?[ \t]*(?:POSFIX<(?P<posfix>[^>]+)>)?[ \t]*(?:ORDER<(?P<order>[^>]+)>)?[ \t]*(?P<update>.+?)?{done_exp}$"
 )
 
 
@@ -128,7 +130,15 @@ def parse_line(line, aliases, urls, posfixes, order):
         d = rex.groupdict()
         tasklis = task_split_input(d["task"])
         task = task_join_internal(tasklis)
-        done = True if d["done"] else False
+        done=None
+        if d["done"]:
+            dd = d["done"].strip()
+            if dd  in DONE_KEYWORDS:
+                done="DONE"
+            elif dd  in STANDBY_KEYWORDS:
+                done = "STANDBY"
+            else:
+                myassert(False,f"UNKNOWN done VALUE: [{d['done']}]")
         update = resolve_update(d["update"])
         return task, update, done
 
@@ -209,7 +219,7 @@ def parse_file(string):
 
             data.append([date, task, update, done])
 
-    # Resolve aliases an posfixes and format updates
+    # Resolve aliases as posfixes and format updates
     for datum in data:
         task=datum[1]
         tasklis = task_split_internal(task)
@@ -221,7 +231,9 @@ def parse_file(string):
         if task in posfixes:
             posfix = posfixes[task]
             if posfix  in DONE_KEYWORDS:
-                datum[3] = True
+                datum[3] = "DONE"
+            elif posfix  in STANDBY_KEYWORDS:
+                datum[3] = "STANDBY"
             else:
                 datum[2] += " " + posfixes[task]
 
@@ -302,7 +314,7 @@ def add_date_to_file(file, now):
 _now = datetime.now()
 
 def main():
-    commands_list = ["log", "open", "closed", "y[esterday]", "today", "[last]week", "thisweek", "span <date-start> <date-end>",  "tasks", "todo"]
+    commands_list = ["log", "open", "standby", "closed", "y[esterday]", "today", "thisweek", "[last]week", "<k>weeks",  "span <date-start> <date-end>",  "tasks", "todo"]
 
     ap = argparse.ArgumentParser(description=f"QuickUpdate {version_name}: https://github.com/hugozaragoza/quick-update")
 
@@ -384,6 +396,11 @@ def main():
             title, txt = reports.report_last_week(df, _now)
             renderer.printAndCopy(txt, title)
 
+        elif (re.fullmatch("[0-9]+weeks",command)):
+            k = int(command[0:-5])
+            title, txt = reports.report_last_week(df, _now, weeks=k)
+            renderer.printAndCopy(txt, title)
+
         elif (command == "yesterday") or (command == "y"):
             title, txt = reports.report_last_day(df, _now)
             renderer.printAndCopy(txt, title)
@@ -400,10 +417,13 @@ def main():
             skip+=2
 
         elif command == "open":
-            renderer.printAndCopy(reports.report_open_tasks(df), "OPEN TASKS")
+            renderer.printAndCopy(reports.report_completion_tasks(df,None), "OPEN TASKS")
+
+        elif command == "standby":
+            renderer.printAndCopy(reports.report_completion_tasks(df,"STANDBY"), "STANDBY TASKS")
 
         elif command == "closed":
-            renderer.printAndCopy(reports.report_closed_tasks(df), "CLOSED TASKS")
+            renderer.printAndCopy(reports.report_completion_tasks(df,"DONE"), "CLOSED TASKS")
 
         elif command == "tasks":
             renderer.printAndCopy(reports.report_tasks(df, posfix),"TASKS")
