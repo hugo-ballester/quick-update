@@ -1,15 +1,28 @@
 # == RENDERER ===========================================================================================
 import subprocess
 
+import utils
 from reports import BULLET
 
 
 class Renderer_md():
-    def __init__(self):
+    def __init__(self, markdown_type="slack"):
         self.buffer=""
+        self.markdown_type=markdown_type
+
+        # Markdown flavours setup:
+        supported=["slack","standard"]
+        utils.myassert(markdown_type in supported, f"Unsupported markdown_type [{markdown_type}]. Supported types: {supported}")
+        self.md_BULLET = "*"
+        if self.markdown_type=="slack":
+            self.md_BULLET = "-"
+
 
     def boldit(self,str):
-        return "**"+str+"**"
+        if self.markdown_type=="slack":
+            return "*"+str+"*"
+        else:
+            return "**"+str+"**"
 
     def title(self, str):
         self.buffer+=self.boldit(str)+"\n"
@@ -23,7 +36,7 @@ class Renderer_md():
 
     def replace_bullet(self,str):
         # HACK, render lists instead
-        return str.replace(BULLET,"  * ")
+        return str.replace(BULLET,self.md_BULLET)
 
     def txt(self,str):
         str = self.replace_bullet(str)
