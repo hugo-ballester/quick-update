@@ -95,6 +95,29 @@ optional arguments:
   --task TASK           Filter to only this task (or task alias)
 ```
 
+### INSTALLATION and USAGE:
+This is how I install locally:
+```php
+git clone https://github.com/hugozaragoza/quick-update.git
+cd quick-update
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+And I setup these aliases in my .zshenv:
+```bash
+update_file=path_to_my_update_file
+qu='python src/quick_update.py -f $update_file'
+```
+
+Usage is then:
+```bash
+qu week
+```
+
+(For MacOS:) Also I typically setup an iTerm2 profile (with a shortcut ^⌘U) starting on the directory where I have installed quickupdate, with the "send text at start:" as 'activate; PROMPT=">"; qu yesterday'. This way I can get look at muy updates with a keystroke.
+
 
 ### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
