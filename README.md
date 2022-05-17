@@ -101,7 +101,7 @@ optional arguments:
   * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
   * You can add or remove sub task levels at any line.
   * A task is marked as "done" by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
-  * A task is marked as "standby" by adding '(STANDBY)' or '(o)' in its update. It can be reopened simply by adding a new update
+  * A task is marked as "standby" by adding '(STANDBY)' or '(,)' in its update. It can be reopened simply by adding a new update
   * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```ALIAS:: your update``` 
     * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
     * You can add an optional URL to be linked with every update for this (sub)task.

@@ -193,7 +193,7 @@ task1:: update 1_2 (.)
 # 2020-01-01
 task1:: update 1_1
 task1:: update 1_3
-task2:: update 1_2 (o)
+task2:: update 1_2 (,)
 """,
             ["task1"],["task2"]
         ),

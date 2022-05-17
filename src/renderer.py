@@ -7,26 +7,25 @@ from reports import BULLET
 
 class Renderer_md():
     def __init__(self, markdown_type="slack"):
-        self.buffer=""
-        self.markdown_type=markdown_type
+        self.buffer = ""
+        self.markdown_type = markdown_type
 
         # Markdown flavours setup:
-        supported=["slack","standard"]
-        utils.myassert(markdown_type in supported, f"Unsupported markdown_type [{markdown_type}]. Supported types: {supported}")
+        supported = ["slack", "standard"]
+        utils.myassert(markdown_type in supported,
+                       f"Unsupported markdown_type [{markdown_type}]. Supported types: {supported}")
         self.md_BULLET = "*"
-        if self.markdown_type=="slack":
+        if self.markdown_type == "slack":
             self.md_BULLET = "-"
 
-
-    def boldit(self,str):
-        if self.markdown_type=="slack":
-            return "*"+str+"*"
+    def boldit(self, str):
+        if self.markdown_type == "slack":
+            return "*" + str + "*"
         else:
-            return "**"+str+"**"
+            return "**" + str + "**"
 
     def title(self, str):
-        self.buffer+=self.boldit(str)+"\n"
-
+        self.buffer += self.boldit(str) + "\n"
 
     def start(self):
         pass
@@ -34,22 +33,22 @@ class Renderer_md():
     def end(self):
         pass
 
-    def replace_bullet(self,str):
+    def replace_bullet(self, str):
         # HACK, render lists instead
-        return str.replace(BULLET,self.md_BULLET)
+        return str.replace(BULLET, self.md_BULLET)
 
-    def txt(self,str):
+    def txt(self, str):
         str = self.replace_bullet(str)
-        self.buffer+=str+"\n"
+        self.buffer += str + "\n"
 
     def flush(self, display=True):
         ret = self.buffer
-        self.buffer=""
+        self.buffer = ""
         if display:
             print(ret)
         return ret
 
-    def render(self,title,body,display=True):
+    def render(self, title, body, display=True):
         self.start()
         self.title(title)
         self.txt(body)
@@ -73,19 +72,18 @@ class Renderer_console(Renderer_md):
         headline1 = "_" * int(terminal_cols)
         Renderer_console.headline1 = self.boldit(headline1)
 
-    def boldit(self,str):
+    def boldit(self, str):
         return f"{Renderer_console.bold_str}{str}{Renderer_console.end_str}"
 
     def start(self):
-        self.buffer+="\n"+Renderer_console.headline1+"\n\n"
+        self.buffer += "\n" + Renderer_console.headline1 + "\n\n"
 
     def end(self):
         self.buffer += Renderer_console.headline1 + "\n"
 
-    def replace_bullet(self,str):
+    def replace_bullet(self, str):
         # HACK, render lists instead
-        return str.replace(BULLET,"  ◯ ")
-
+        return str.replace(BULLET, "  • ")
 
 
 def write_to_clipboard(string):
@@ -93,11 +91,12 @@ def write_to_clipboard(string):
         'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
     process.communicate(string.encode('utf-8'))
 
+
 def printAndCopy(string, title=None):
     r = Renderer_md()
-    md = r.render(title,string, display=False)
+    md = r.render(title, string, display=False)
 
     r = Renderer_console()
-    r.render(title,string)
+    r.render(title, string)
 
     write_to_clipboard(md)

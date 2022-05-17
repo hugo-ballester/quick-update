@@ -1,7 +1,7 @@
 import calendar
 from datetime import timedelta, datetime
 
-
+import utils
 from parsing import *
 from utils import date_string
 
@@ -219,7 +219,7 @@ def report(df, force_subbullets=False):
                 ret += f"{prefx2}{row.Update}{done(row.Done)}\n"
         else:
             row = [r for i, r in group.iterrows()]
-            ret += f"{row[0].Update}\n"
+            ret += f"{row[0].Update}{done(row[0].Done)}\n"
 
     return ret
 
