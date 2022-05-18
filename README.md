@@ -1,5 +1,7 @@
 # quick-update
 
+[<img src="https://user-images.githubusercontent.com/382557/168976483-6698150f-beba-4072-a790-aed10224b0d7.png" width="50%">](https://www.youtube.com/watch?v=Hc79sDi3f0U "QuickUpdate")
+
 Keep track of your work in a simple text file, generate reports from it (last week, currently open, etc.)
 
 Some nice features:
