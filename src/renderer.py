@@ -16,7 +16,7 @@ class Renderer_md():
                        f"Unsupported markdown_type [{markdown_type}]. Supported types: {supported}")
         self.md_BULLET = "*"
         if self.markdown_type == "slack":
-            self.md_BULLET = "-"
+            self.md_BULLET = "- "
 
     def boldit(self, str):
         if self.markdown_type == "slack":
