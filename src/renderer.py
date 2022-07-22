@@ -1,8 +1,8 @@
 # == RENDERER ===========================================================================================
 import subprocess
-
+import re
 import utils
-from reports import BULLET
+from reports import BULLET, BULLET2
 
 
 class Renderer_md():
@@ -35,7 +35,17 @@ class Renderer_md():
 
     def replace_bullet(self, str):
         # HACK, render lists instead
-        return str.replace(BULLET, self.md_BULLET)
+        return str.replace(BULLET, self.md_BULLET).replace(BULLET2, self.md_BULLET)
+
+    def format_task(update):
+        return update.title()
+
+    def format_update(update):
+        if not re.match("[.!?]", update[-1]):
+            update += "."
+
+        update = f"{update[0].upper()}{update[1:]}"
+        return update
 
     def txt(self, str):
         str = self.replace_bullet(str)
@@ -83,7 +93,7 @@ class Renderer_console(Renderer_md):
 
     def replace_bullet(self, str):
         # HACK, render lists instead
-        return str.replace(BULLET, "  • ")
+        return str.replace(BULLET, "  • ").replace(BULLET2, "  ◦ ")
 
 
 def write_to_clipboard(string):

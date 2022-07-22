@@ -85,15 +85,6 @@ def resolve_update(update):
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
     return update
 
-
-def format_update(update):
-    if not re.match("[.!?]", update[-1]):
-        update += "."
-
-    update = f"{update[0].upper()}{update[1:]}"
-    return update
-
-
 def parse_line(line, aliases, urls, posfixes, order):
     '''
     Returns (task, update, done) if an update is encountered (aliases will not resolved yet).
@@ -216,26 +207,23 @@ def parse_file(string):
                 )
 
             data.append([date, task, update, done])
-
+    DATE,TASK,UPDATE,DONE = (0,1,2,3)
     # Resolve aliases as posfixes and format updates
     for datum in data:
-        task = datum[1]
+        task = datum[TASK]
         tasklis = task_split_internal(task)
         key = tasklis[0]
         if key in aliases:
             tasklis[0] = aliases[key]
-            datum[1] = task_join_internal(tasklis)
-        task = datum[1]
+            task = datum[TASK] = task_join_internal(tasklis)
         if task in posfixes:
             posfix = posfixes[task]
             if posfix in DONE_KEYWORDS:
-                datum[3] = "DONE"
+                datum[DONE] = "DONE"
             elif posfix in STANDBY_KEYWORDS:
-                datum[3] = "STANDBY"
+                datum[DONE] = "STANDBY"
             else:
-                datum[2] += " " + posfixes[task]
-
-        datum[2] = format_update(datum[2])
+                datum[UPDATE] += " " + posfix
 
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
     df.Date = pd.to_datetime(df.Date)

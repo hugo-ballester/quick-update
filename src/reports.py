@@ -1,4 +1,5 @@
 import calendar
+from collections import defaultdict
 from datetime import timedelta, datetime
 
 import utils
@@ -8,7 +9,9 @@ from utils import date_string
 # ------------------------------------------------------------------------------------------------------------
 # GOBAL
 # ------------------------------------------------------------------------------------------------------------
-BULLET = "  _*_ " # todo, move lists to renderer ◯◦
+BULLET = "  _*_ "  # todo, move lists to renderer ◯◦
+BULLET2 = "  _o_ "  # todo, move lists to renderer ◯◦
+
 
 # ------------------------------------------------------------------------------------------------------------
 # REPORT FORMATTING:
@@ -16,9 +19,10 @@ BULLET = "  _*_ " # todo, move lists to renderer ◯◦
 
 def task_display(task, url=None):
     task = task_join_external(task_split_internal(task))
-    if url and len(url)>0:
+    if url and len(url) > 0:
         task = f"[{task}]({url})"
     return task
+
 
 # ------------------------------------------------------------------------------------------------------------
 # REPORT FORMATTING:
@@ -95,7 +99,6 @@ def report1(
     return ret
 
 
-
 # ------------------------------------------------------------------------------------------------------------
 # REPORTS:
 # ------------------------------------------------------------------------------------------------------------
@@ -104,7 +107,7 @@ def report_tasks(df, posfix):
     #    df=df[df.Key.notnull()]
     df = df[["Task", "Key", "Order"]]
     df = df.drop_duplicates().sort_values("Order")
-    ret =  ""
+    ret = ""
     for index, row in df.iterrows():
         k = f"[{row.Key}]" if row.Key else ""
         k = f"{k:10s}"
@@ -114,19 +117,19 @@ def report_tasks(df, posfix):
 
 
 def report_completion_tasks(df, completion_value=None, today=None):
-    df = completion_tasks(df,completion_value,today)
+    df = completion_tasks(df, completion_value, today)
     ret = report1(df, groupby="Task", display_date=True, display_key=False, last_only="Task", sortby="Order",
-                   ascending=True)
+                  ascending=True)
     return ret
 
 
 def report_log(df, task):
-    tmp = df[df.Key==task]
-    if len(tmp)>0:
-        task=tmp.iloc[0].Task
+    tmp = df[df.Key == task]
+    if len(tmp) > 0:
+        task = tmp.iloc[0].Task
     df = df[df.Task == task]
     ret = report1(df, groupby="Date", display_date=True, display_key=False, last_only=None, sortby="Date",
-                   ascending=True, display_group_headers=False)
+                  ascending=True, display_group_headers=False)
     return ret
 
 
@@ -135,9 +138,10 @@ def report_closed_tasks(df):
 
     df = completion_tasks(df, "DONE", today=_now)
     ret = report1(df, groupby="Task", display_date=False, display_key=False, last_only="Task", sortby="Order",
-                   ascending=True)
+                  ascending=True)
     report_span()
     return ret
+
 
 def report_this_week(df, date):
     startdate = date + timedelta(days=-date.weekday())
@@ -146,49 +150,53 @@ def report_this_week(df, date):
     datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
 
     title = f"This Week #{weekno}: {datestr}"
-    _, txt = report_span(df, startdate, enddate, force_subbullets=True)
-    return title,txt
+    _, txt = report_span(df, startdate, enddate)
+    return title, txt
+
 
 def report_last_week(df, date, weeks=1):
     startdate = date + timedelta(days=-date.weekday(), weeks=-weeks)
-    enddate = startdate + timedelta(days=(7*weeks)-1)
+    enddate = startdate + timedelta(days=(7 * weeks) - 1)
     weekno = startdate.isocalendar()[1]
     datestr = f"{enddate.date().year} / {enddate.date().month} / {startdate.date().day}-{enddate.date().day}"
 
-    if weeks==1:
+    if weeks == 1:
         title = f"Last Week #{weekno}: {datestr}"
     else:
         title = f"Last {weeks} Weeks: {datestr}"
     _, txt = report_span(df, startdate, enddate)
-    return title,txt
+    return title, txt
+
 
 def report_today(df, date):
     title = f"Today {date.date().isoformat()}:"
     _, txt = report_span(df, date, date)
     return title, txt
 
+
 def report_last_day(df, date):
     weekday = date.weekday()
-    if weekday>0:
+    if weekday > 0:
         startdate = date + timedelta(days=-1)
     else:
         startdate = date + timedelta(days=-3)
-    title=calendar.day_name[startdate.weekday()]
+    title = calendar.day_name[startdate.weekday()]
     title = f"{title} {startdate.date().isoformat()}:"
     _, txt = report_span(df, startdate, startdate)
     return title, txt
 
 
 def show_url(url):
-    if not url or len(url)==0:
+    if not url or len(url) == 0:
         return ""
     return f" ([link]({url}))"
 
-def report_span(df, startdate, enddate, force_subbullets=False):
-    if startdate==None and enddate==None:
+
+def report_span(df, startdate, enddate):
+    if startdate == None and enddate == None:
         title = "SPAN: All"
 
-    elif startdate==None:
+    elif startdate == None:
         df = df[df.Date <= str(enddate.date())]
         title = f"SPAN: <= {enddate:%Y-%m-%d}\n\n"
 
@@ -199,13 +207,83 @@ def report_span(df, startdate, enddate, force_subbullets=False):
         df = df[(df.Date >= str(startdate.date())) & (df.Date <= str(enddate.date()))]
         title = f"SPAN: {startdate:%Y-%m-%d} - {enddate:%Y-%m-%d}\n\n"
 
-    txt = report(df, force_subbullets=force_subbullets)
+    txt = report(df)
     return title, txt
+
 
 def done(bool):
     return "  ✓" if bool else ""
 
-def report(df, force_subbullets=False):
+def upper_first(str):
+    return str[0].upper()+str[1:]
+
+def format_task(str):
+    bold_str = "\033[1m"
+    end_str = "\033[0m"
+    return bold_str+upper_first(str)+end_str
+
+def format_update(update):
+    if not re.match("[.!?]", update[-1]):
+        update += "."
+    return upper_first(update)
+
+def tab(n):
+    return "  "*n
+
+def depth_first_report(tree,updates,depth=0):
+    ret=""
+    if "_key" in tree:
+        key = tree["_key"]
+        h = f"{tab(depth)}{BULLET2}"
+        ret += h + ("\n" + h).join([format_update(x) for x in updates[key]]) + "\n"
+
+    for k,v in tree.items():
+        if k=="_key": # dont render
+            continue
+        ret += f"{tab(depth)}{BULLET}{format_task(k)}:\n" + depth_first_report(v,updates,depth+1)
+    return ret
+
+def depth_first_report_flat(tree,updates):
+    ret=""
+    if "_key" in tree and tree["_key"] in updates:
+        key=tree["_key"]
+        h = f"{BULLET}{format_task(key)}: "
+        ret += h + ("\n" + h).join([format_update(x) for x in updates[key]]) + "\n"
+    for k,v in tree.items():
+        if k=="_key":
+            continue
+        ret += depth_first_report_flat(v,updates)
+    return ret
+
+
+def report(df,oldformat=False):
+    def tree(): return defaultdict(tree)
+    tasktree = tree()
+    updates = defaultdict(list)
+    df = df.sort_values(["Order", "Task", "URL"])
+    for r in df.itertuples():
+        task_path = task_split_internal(r.Task)
+        p = tasktree
+        for t in task_path:
+            if t not in p:
+                p[t]=tree()
+            p=p[t]
+        p["_key"] = r.Task
+        updates[r.Task].append(r.Update + done(r.Done))
+    if oldformat:
+        return depth_first_report_flat(tasktree, updates)
+    else:
+        return depth_first_report(tasktree,updates)
+
+
+def report_old(df, force_subbullets=False):
+    """
+
+    :param df:
+    :param force_subbullets: If Ture update text appears always in ints own indented bullet. If False, this happens
+    only if there is more than one update to render.
+    :return:
+    """
     global BULLET
     ret = ""
     df = df.groupby(["Order", "Task", "URL"])  # groupby order first to preserve right order
@@ -216,10 +294,10 @@ def report(df, force_subbullets=False):
             ret += "\n"
             prefx2 = "  " + BULLET
             for index, row in group.iterrows():
-                ret += f"{prefx2}{row.Update}{done(row.Done)}\n"
+                ret += f"{prefx2}{format_update(row.Update)}{done(row.Done)}\n"
         else:
             row = [r for i, r in group.iterrows()]
-            ret += f"{row[0].Update}{done(row[0].Done)}\n"
+            ret += f"{format_update(row[0].Update)}{done(row[0].Done)}\n"
 
     return ret
 
@@ -246,9 +324,6 @@ def completion_tasks(data, completion_value, today=None):
         df = df[(df["Date"] <= today)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
     if completion_value is None:
-        return df[(df["Done"] != "DONE")&(df["Done"] != "STANDBY")]
+        return df[(df["Done"] != "DONE") & (df["Done"] != "STANDBY")]
     else:
         return df[(df["Done"] == completion_value)]
-
-
-

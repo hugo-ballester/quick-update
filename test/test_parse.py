@@ -131,25 +131,25 @@ def test_parse_date(file_content, des_date):
     "file_content,des_task, des_update, des_done",
     [
         #Basic:
-        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "Update.", None),
+        ("# 2001-01-01\n[T1] task1::\nT1:: update", "task1", "update", None),
         #Basic with DONE:
-        ("# 2001-01-01\n[T1] task1:: POSFIX<(DONE)>\nT1:: update", "task1", "Update.", "DONE"),
+        ("# 2001-01-01\n[T1] task1:: POSFIX<(DONE)>\nT1:: update", "task1", "update", "DONE"),
         (
             "# 2001-01-01\n[T1] task1:: POSFIX<my posfix!>\nT1:: update",
             "task1",
-            "Update my posfix!", None
+            "update my posfix!", None
         ),
         #update with extended task:
         (
             "# 2001-01-01\n[T1] task1:: task2::\nT1:: task 3:: update",
             task_join_internal(("task1", "task2", "task 3")),
-            "Update.", None
+            "update", None
         ),
         #update with extended task, alias comes later:
         (
             "# 2001-01-01\nT1:: task 3:: update\n[T1] task1:: task2::",
             task_join_internal(("task1", "task2", "task 3")),
-            "Update.", None
+            "update", None
         ),
     ],
 )
