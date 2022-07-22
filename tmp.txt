@@ -1,8 +1,0 @@
-LICENSE
-README.md
-requirements.txt
-sample_update.txt
-src
-test
-tmp.txt
-venv
