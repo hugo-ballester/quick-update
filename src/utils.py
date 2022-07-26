@@ -30,3 +30,9 @@ def debug(string, title=""):
     print("------------------------------------------------------")
 
 
+def upper_first(str):
+    return str[0].upper()+str[1:]
+
+
+def tab(n):
+    return "  "*n

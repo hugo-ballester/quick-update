@@ -1,8 +1,12 @@
 # == RENDERER ===========================================================================================
-import subprocess
 import re
+import subprocess
+
 import utils
 from reports import BULLET, BULLET2
+
+BULLET_MARKDOWN = "* "
+BULLET_MARKDOWN_SLACK = "- "
 
 
 class Renderer_md():
@@ -14,9 +18,7 @@ class Renderer_md():
         supported = ["slack", "standard"]
         utils.myassert(markdown_type in supported,
                        f"Unsupported markdown_type [{markdown_type}]. Supported types: {supported}")
-        self.md_BULLET = "*"
-        if self.markdown_type == "slack":
-            self.md_BULLET = "- "
+        self.md_BULLET = BULLET_MARKDOWN_SLACK if self.markdown_type == "slack" else BULLET_MARKDOWN
 
     def boldit(self, str):
         if self.markdown_type == "slack":
@@ -60,7 +62,8 @@ class Renderer_md():
 
     def render(self, title, body, display=True):
         self.start()
-        self.title(title)
+        if title:
+            self.title(title)
         self.txt(body)
         self.end()
         txt = self.flush(display)
@@ -75,6 +78,7 @@ class Renderer_console(Renderer_md):
 
     def __init__(self):
         super().__init__()
+        terminal_cols = 80
         try:
             _, terminal_cols = subprocess.check_output(["stty", "size"]).decode().split()
         except:
@@ -110,3 +114,10 @@ def printAndCopy(string, title=None):
     r.render(title, string)
 
     write_to_clipboard(md)
+
+
+def printAndCopy_tree(tree, updates, title=None):
+    r = Renderer_console()
+    txt = r.render_reporttree(tree, updates)
+    r.render(title, txt)
+    write_to_clipboard(txt)

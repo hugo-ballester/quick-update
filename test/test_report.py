@@ -1,40 +1,47 @@
-import pytest
-
+import reports
+import reporttree
 from quick_update import parse_file
-from reports import report, report_old
 
 bold = "\x1b[1m"
 endbold = "\x1b[0m"
 
 
-def test_report_old():
+def test_write_reporttree_old():
     file_content = """
 #2022-07-21
-Title A:: title AA:: update text here
-Title A:: title AB:: update text here
-Title A:: title AB:: third title A:: update text here
-Title B:: update text here
+TITLE A:: title AA:: update text here 1
+TITLE A:: title AB:: update text here 2.
+TITLE A:: title AB:: title ABA:: update text here 3!
+TITLE B:: update text here
 """
     df, _, _, _, _ = parse_file(file_content)
-    rep = report(df, oldformat=True)
-    assert rep == """\
-  _*_ Title A::title AA: Update text here.
-  _*_ Title A::title AB: Update text here.
-  _*_ Title A::title AB::third title A: Update text here.
-  _*_ Title B: Update text here.
-""".replace("Title",bold+"Title").replace(": U",endbold+": U")
+    title, tree, updates = reports.report_span(df, None, None)
+    # TODO: test tress here
+
+    rep = reporttree.write_reporttree(tree, updates, reports.BULLET, reports.BULLET2, oldformat=True)
+    des = """\
+  _*_ TITLE A::Title AA: Update text here 1.
+  _*_ TITLE A::Title AB: Update text here 2.
+  _*_ TITLE A::Title AB::Title ABA: Update text here 3!
+  _*_ TITLE B: Update text here.
+""".replace("TITLE", bold + "TITLE").replace(": U", endbold + ": U")  # full task linke in bold
+    for (a, d) in zip(rep.split("\n"), des.split("\n")):
+        assert a == d
 
 
-def test_report():
+def test_write_reporttree():
     file_content = """
 #2022-07-21
-Title A:: Title AA:: update text here 1
-Title A:: Title AB:: update text here 2
-Title A:: Title AB:: Title ABA:: update text here 3
+Title A:: title AA:: update text here 1
+Title A:: title AB:: update text here 2.
+Title A:: title AB:: title ABA:: update text here 3!
 Title B:: update text here 4
 """
     df, _, _, _, _ = parse_file(file_content)
-    rep = report(df)
+    title, tree, updates = reports.report_span(df, None, None)
+    # TODO: test tress here
+
+    rep = reporttree.write_reporttree(tree, updates, reports.BULLET, reports.BULLET2, oldformat=False)
     des = """\
   _*_ Title A:
     _*_ Title AA:
@@ -42,10 +49,9 @@ Title B:: update text here 4
     _*_ Title AB:
       _o_ Update text here 2.
       _*_ Title ABA:
-        _o_ Update text here 3.
+        _o_ Update text here 3!
   _*_ Title B:
     _o_ Update text here 4.
-""".replace("Title",bold+"Title").replace(":",endbold+":")
+""".replace("T", bold + "T").replace(":", endbold + ":")  # each individual task linke in bold
     for (a, d) in zip(rep.split("\n"), des.split("\n")):
         assert a == d
-

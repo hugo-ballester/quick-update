@@ -7,16 +7,16 @@ see README.md for usage documentation
 
 """
 import argparse
-from datetime import datetime
 import os
-import pandas as pd
-import re
 import shutil
+from datetime import datetime
 
+import pandas as pd
+
+import renderer
+import reports
 from parsing import *
 from utils import myassert, debug
-import reports
-import renderer
 
 # ------------------------------------------------------------------------------------------------------------
 # DESIGN
@@ -84,6 +84,7 @@ def resolve_update(update):
     update = update.strip()
     update = url_shorthand_rex.sub("[\\1](\\2)", update)
     return update
+
 
 def parse_line(line, aliases, urls, posfixes, order):
     '''
@@ -207,7 +208,7 @@ def parse_file(string):
                 )
 
             data.append([date, task, update, done])
-    DATE,TASK,UPDATE,DONE = (0,1,2,3)
+    DATE, TASK, UPDATE, DONE = (0, 1, 2, 3)
     # Resolve aliases as posfixes and format updates
     for datum in data:
         task = datum[TASK]
@@ -386,36 +387,36 @@ def main():
             print(reports.report_log(df, task))
 
         elif command == "all":
-            title, txt = reports.report_span(df, None, None)
-            renderer.printAndCopy(txt, title)
+            title, txt = reports.write_report_span(df, None, None)
+            renderer.printAndCopy(txt, title=title)
             skip += 2
 
         elif command == "thisweek":
             title, txt = reports.report_this_week(df, _now)
-            renderer.printAndCopy(txt, title)
+            renderer.printAndCopy(txt, title=title)
 
         elif (command == "lastweek") or (command == "week") or (command == "w"):
             title, txt = reports.report_last_week(df, _now)
-            renderer.printAndCopy(txt, title)
+            renderer.printAndCopy(txt, title=title)
 
         elif m_k:
             k = int(m_k.groupdict()["k"])
             title, txt = reports.report_last_week(df, _now, weeks=k)
-            renderer.printAndCopy(txt, title)
+            renderer.printAndCopy(txt, title=title)
 
         elif (command == "yesterday") or (command == "y"):
             title, txt = reports.report_last_day(df, _now)
-            renderer.printAndCopy(txt, title)
+            renderer.printAndCopy(txt, title=title)
 
         elif (command == "today"):
             title, txt = reports.report_today(df, _now)
-            renderer.printAndCopy(txt, title)
+            renderer.printAndCopy(txt, title=title)
 
         elif command == "span":
             startdate = datetime.strptime(args["commands"][i + 1], '%Y-%m-%d')
             enddate = datetime.strptime(args["commands"][i + 2], '%Y-%m-%d')
-            title, txt = reports.report_span(df, startdate, enddate)
-            renderer.printAndCopy(txt, title)
+            title, txt = reports.write_report_span(df, startdate, enddate)
+            renderer.printAndCopy(txt, title=title)
             skip += 2
 
         elif (command == "open") or (command == "o"):
