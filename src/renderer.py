@@ -100,6 +100,15 @@ class Renderer_console(Renderer_md):
         return str.replace(BULLET, "  • ").replace(BULLET2, "  ◦ ")
 
 
+class Renderer_console_plain(Renderer_md):
+
+    # This is a hack to remove console bold to cut and paste text
+    def txt(self, str):
+        str = str.replace(Renderer_console.bold_str, "")
+        str = str.replace(Renderer_console.end_str, "")
+        super().txt(str)
+
+
 def write_to_clipboard(string):
     process = subprocess.Popen(
         'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
@@ -107,17 +116,23 @@ def write_to_clipboard(string):
 
 
 def printAndCopy(string, title=None):
-    r = Renderer_md()
-    md = r.render(title, string, display=False)
+    # r = Renderer_md()
+    # md = r.render(title, string, display=False)
 
     r = Renderer_console()
     r.render(title, string)
 
-    write_to_clipboard(md)
+    r2 = Renderer_console_plain()
+    txt = r2.render(title, string, display=False)
+    write_to_clipboard(txt)
 
 
 def printAndCopy_tree(tree, updates, title=None):
     r = Renderer_console()
     txt = r.render_reporttree(tree, updates)
     r.render(title, txt)
+
+    r2 = Renderer_console_plain()
+    txt = r.render_reporttree(tree, updates)
+    txt = r2.render(title, txt, display=False)
     write_to_clipboard(txt)
