@@ -6,6 +6,7 @@
 Keep track of your work in a simple text file, generate reports from it (last week, currently open, etc.)
 
 Some nice features:
+  * arbitrary number of tasks hierarchical levels
   * quickly write updates of hierarchical tasks, easily including hyperlinks
   * report completed and open tasks, report elapsed time since beginning of a task
   * reports automatically copy its content to the clipboard in MarkDown format
@@ -125,20 +126,17 @@ qu week
 ### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
   * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
-  * You can add or remove sub task levels at any line.
+  * Tasks can have an arbitrary number of "hierarchical levels", just separate them by `::`. The last `::` marks the end of the task name and the beginning of the udpate. For example `Main Project::Sub Project::Task::Sub Task:: your update to this sub task`
   * A task is marked as "done" by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
   * A task is marked as "standby" by adding '(STANDBY)' or '(,)' in its update. It can be reopened simply by adding a new update
-  * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```ALIAS:: your update``` 
-    * An alias line begins with `[ALIAS] ` followed by the full task (or subtask) name.
-    * You can add an optional URL to be linked with every update for this (sub)task.
-    * You can add an optional posfix and order prefix (prefix to be used when sorting alphabetically)
-    * Example: `[ALIAS] Task name:: sub task name:: OPTIONAL_URL POSFIX<optional_posfix> ORDER<optional_order_prefix_string>`
-    * if you define a posfix, it will be added at the end of every update for this key (useful for tasks that you want to mark always as DONE with every update)
-    * if you define an order, task alphabetical order will prefix this string (e.g. use ::ORDER:zzz: to push to the bottom)
-  * Update description will be formatted as follows: 
-    * first letter is upper-cased, a period is added at the end if it does not have one.
-    * links of the form word:URL are converted to Markup's usual [word](url)
-  * Lines starting with #TODO are stored and reported.
+  * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```MyAlias:: your update``` 
+    * An alias definition line begins with the alias name in square bracket followed by the full task (or subtask) name. For example: `[MyAlias] Cooking:: Bake a Cake::` 
+    * An alias definition can be decorated with:
+      * a URL to be linked with every update for this (sub)task.
+      * a posfix string (to be added to every update of this task)
+      * an order prefix (prefix to be used when sorting alphabetically)
+      * Example: `[MyAlias] Cooking:: Bake a Cake:: http://bake_a_cake.com POSFIX<(DONE)> ORDER<zzz>`    
+  * Any lines starting with #TODO are stored in batch and can be reported.
   
 
 ### MISC:
