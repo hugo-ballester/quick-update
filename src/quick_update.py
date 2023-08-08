@@ -78,6 +78,7 @@ alias_rex = re.compile(
 url_shorthand_rex = re.compile(f"(?P<word>[^\\s]+):(?P<url>{regex_url})")
 
 blank_rex = re.compile("^\\s*$")
+doclines = re.compile("^###+")
 
 
 def resolve_update(update):
@@ -179,20 +180,28 @@ def parse_file(string):
 
     # Parse updates
     linenum = 0
+    doclines_on = False
     for line in lines:
-        line = line.strip()
         linenum += 1
+        line = line.strip()
+
+        if doclines.match(line):
+            doclines_on = not doclines_on
+            continue
+
+        if doclines_on: 
+            continue
+
+        if line.startswith("#TODO"):
+            todos.append(line)
+            continue
 
         date_m = parse_date(line)
         if date_m:
             date = date_m
             continue
 
-        elif line.startswith("#TODO"):
-            todos.append(line)
-            continue
-
-        elif line.startswith("#") or blank_rex.match(line):
+        if line.startswith("#") or blank_rex.match(line):
             continue
 
         try:

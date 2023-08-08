@@ -10,6 +10,7 @@ Some nice features:
   * quickly write updates of hierarchical tasks, easily including hyperlinks
   * report completed and open tasks, report elapsed time since beginning of a task
   * reports automatically copy its content to the clipboard in MarkDown format
+  * write scrap text anywhere
 
 
 Alpha release, hugo@hugo-zaragoza.net
@@ -43,6 +44,14 @@ Another example using more features:
 ```
 [XFP] Project-X:: First Proposal::
 [11]  Management:: 1:1s:: POSFIX<(DONE)> ORDER<zzz>
+
+### scrap block
+start a scrap block with three or more #,
+write anything here, won't be parsed until a new ###+ line is found
+ 
+# blah
+ not parsed... 
+###
 
 #2020-01-01
 XFP:: discussed with Phoebe
