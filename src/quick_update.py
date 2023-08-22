@@ -138,6 +138,11 @@ def parse_line(line, aliases, urls, posfixes, order):
     return task, update, done
 
 
+def todo(todos):
+    if len(todos) > 0:
+        renderer.printAndCopy("\n".join(todos), "TODO")
+
+
 def parse_file(string):
     date = None
     date_ascending = None
@@ -189,7 +194,7 @@ def parse_file(string):
             doclines_on = not doclines_on
             continue
 
-        if doclines_on: 
+        if doclines_on:
             continue
 
         if line.startswith("#TODO"):
@@ -381,58 +386,70 @@ def main():
         df = df[(df.Task == task) | (df.Task == task2)]
         print(f"FILTERING BY task==[{task}] ({len(df)}  rows)")
 
-    skip = 0
+    args_to_skip = 0
     for i in range(len(args["commands"])):
-        if skip > 0:
-            skip -= 1
-            continue;
+        if args_to_skip > 0:
+            args_to_skip -= 1
+            continue
 
         command = args["commands"][i]
         m_k = re.fullmatch("(?P<k>[0-9]+)w(?:eeks)?", command)
 
         if command == "log":
             task = args["commands"][i + 1]
-            skip += 1
+            args_to_skip += 1
             print(reports.report_log(df, task))
+            todo(todos)
+
 
         elif command == "all":
             title, txt = reports.write_report_span(df, None, None)
             renderer.printAndCopy(txt, title=title)
-            skip += 2
+            todo(todos)
+            args_to_skip += 2
 
         elif command == "thisweek":
             title, txt = reports.report_this_week(df, _now)
             renderer.printAndCopy(txt, title=title)
+            todo(todos)
+
 
         elif (command == "lastweek") or (command == "week") or (command == "w"):
             title, txt = reports.report_last_week(df, _now)
             renderer.printAndCopy(txt, title=title)
+            todo(todos)
 
         elif m_k:
             k = int(m_k.groupdict()["k"])
             title, txt = reports.report_last_week(df, _now, weeks=k)
             renderer.printAndCopy(txt, title=title)
+            todo(todos)
 
         elif (command == "yesterday") or (command == "y"):
             title, txt = reports.report_last_day(df, _now)
             renderer.printAndCopy(txt, title=title)
+            todo(todos)
 
         elif (command == "today"):
             title, txt = reports.report_today(df, _now)
             renderer.printAndCopy(txt, title=title)
+            todo(todos)
 
         elif command == "span":
             startdate = datetime.strptime(args["commands"][i + 1], '%Y-%m-%d')
             enddate = datetime.strptime(args["commands"][i + 2], '%Y-%m-%d')
             title, txt = reports.write_report_span(df, startdate, enddate)
             renderer.printAndCopy(txt, title=title)
-            skip += 2
+            todo(todos)
+            args_to_skip += 2
 
         elif (command == "open") or (command == "o"):
             renderer.printAndCopy(reports.report_completion_tasks(df, None), "OPEN TASKS")
+            todo(todos)
 
         elif command == "standby":
             renderer.printAndCopy(reports.report_completion_tasks(df, "STANDBY"), "STANDBY TASKS")
+            todo(todos)
 
         elif command == "closed":
             renderer.printAndCopy(reports.report_completion_tasks(df, "DONE"), "CLOSED TASKS")
@@ -441,8 +458,7 @@ def main():
             renderer.printAndCopy(reports.report_tasks(df, posfix), "TASKS")
 
         elif command == "todo":
-            out = "\n".join(todos)
-            renderer.printAndCopy(out, "TODO")
+            renderer.printAndCopy("\n".join(todos), "TODO")
 
         else:
             print(
