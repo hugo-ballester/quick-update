@@ -314,7 +314,7 @@ _now = datetime.now()
 
 
 def main():
-    commands_list = ["log", "o[pen]", "standby", "closed", "y[esterday]", "today", "thisweek", "[last]week",
+    commands_list = ["o[pen]", "pending", "standby", "closed", "y[esterday]", "today", "thisweek", "[last]week",
                      "<k>w[eeks]",
                      "span <date-start> <date-end>", "tasks", "todo"]
 
@@ -379,12 +379,8 @@ def main():
         print(f"FILTERING BY task==[{task}] ({len(df)}  rows)")
 
     if args['filter']:
-        task = args['task']
-        if task in aliases:
-            task = aliases[task]
-        task2 = task_join_internal(task_split_external(task))
-        df = df[(df.Task == task) | (df.Task == task2)]
-        print(f"FILTERING BY task==[{task}] ({len(df)}  rows)")
+        df = df[df.Update.str.contains(re.escape(args['filter']))]
+        print(f"FILTERING BY search string [{args['filter']}] ({len(df)}  rows)")
 
     args_to_skip = 0
     for i in range(len(args["commands"])):
@@ -395,24 +391,24 @@ def main():
         command = args["commands"][i]
         m_k = re.fullmatch("(?P<k>[0-9]+)w(?:eeks)?", command)
 
-        if command == "log":
-            task = args["commands"][i + 1]
-            args_to_skip += 1
-            print(reports.report_log(df, task))
-            todo(todos)
-
-
-        elif command == "all":
+        if command == "all":
             title, txt = reports.write_report_span(df, None, None)
             renderer.printAndCopy(txt, title=title)
             todo(todos)
-            args_to_skip += 2
+
+        elif command == "pending":
+            df = df[df.Update.str.contains(re.escape("(!)"))]
+            title, txt = reports.write_report_span(df, None, None)
+            renderer.printAndCopy(txt, title=title)
+
+        elif command == "pending":
+            title, txt = reports.write_report_span(df, None, None)
+            renderer.printAndCopy(txt, title=title)
 
         elif command == "thisweek":
             title, txt = reports.report_this_week(df, _now)
             renderer.printAndCopy(txt, title=title)
             todo(todos)
-
 
         elif (command == "lastweek") or (command == "week") or (command == "w"):
             title, txt = reports.report_last_week(df, _now)

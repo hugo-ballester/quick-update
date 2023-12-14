@@ -6,7 +6,7 @@
 Keep track of your work in a simple text file, generate reports from it (last week, currently open, etc.)
 
 Some nice features:
-  * arbitrary number of tasks hierarchical levels
+  * arbitrary number of tasks/projects/subprojects hierarchical levels
   * quickly write updates of hierarchical tasks, easily including hyperlinks
   * report completed and open tasks, report elapsed time since beginning of a task
   * reports automatically copy its content to the clipboard in MarkDown format
@@ -98,7 +98,7 @@ usage: quick_update.py [-h] -f UPDATE_FILE [--now NOW] [--task TASK] commands [c
 QuickUpdate v1.1: https://github.com/hugozaragoza/quick-update
 
 positional arguments:
-  commands              log, open, standby, closed, y[esterday], today, thisweek, [last]week, <k>weeks, span <date-start> <date-end>, tasks, todo
+  commands              open, pending, standby, closed, y[esterday], today, thisweek, [last]week, <k>weeks, span <date-start> <date-end>, tasks, todo
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -131,6 +131,12 @@ qu week
 
 (For MacOS:) Also I typically setup an iTerm2 profile (with a shortcut ^⌘U) starting on the directory where I have installed quickupdate, with the "send text at start:" as 'activate; PROMPT=">"; qu yesterday'. This way I can get look at muy updates with a keystroke.
 
+### CONCEPTS
+
+  * A "task" is synonym of a project, subproject, subsubproject, it's all just a tree of tasks, you decide what to call each level. 
+  * You can keep adding updates to a task, it becomes the task "log" or history. 
+  * You can mark a task either "open", "closed", or in "standby". 
+  * You tag updates if you want to group them or find them easily.
 
 ### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
@@ -138,6 +144,7 @@ qu week
   * Tasks can have an arbitrary number of "hierarchical levels", just separate them by `::`. The last `::` marks the end of the task name and the beginning of the udpate. For example `Main Project::Sub Project::Task::Sub Task:: your update to this sub task`
   * A task is marked as "done" by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
   * A task is marked as "standby" by adding '(STANDBY)' or '(,)' in its update. It can be reopened simply by adding a new update
+  * An update is marked as "pending" by adding (!). Note that this is just a search shortcut, no special meaning except for the "pending" command.
   * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```MyAlias:: your update``` 
     * An alias definition line begins with the alias name in square bracket followed by the full task (or subtask) name. For example: `[MyAlias] Cooking:: Bake a Cake::` 
     * An alias definition can be decorated with:
