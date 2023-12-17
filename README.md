@@ -135,17 +135,17 @@ qu week
 
   * A "task" is synonym of a project, subproject, subsubproject, it's all just a tree of tasks, you decide what to call each level. 
   * You can keep adding updates to a task, it becomes the task "log" or history. 
-  * You can mark a task either "open", "closed", or in "standby". 
+  * You can mark a task either "open", "closed", or in "standby". (Any tasks having an update with a pending tag will be in "pending" mode.) 
   * You tag updates if you want to group them or find them easily.
 
 ### FILE FORMAT:
   * Being an update block with a date heading: `# 2020-01-01`
   * Give an update in each line, prefixed by the task name: `Your task name:: your sub task name:: your update`
   * Tasks can have an arbitrary number of "hierarchical levels", just separate them by `::`. The last `::` marks the end of the task name and the beginning of the udpate. For example `Main Project::Sub Project::Task::Sub Task:: your update to this sub task`
-  * A task is marked as "done" by adding '(DONE)' or '(.)' in its update. It can be reopened simply by adding a new update
-  * A task is marked as "standby" by adding '(STANDBY)' or '(,)' in its update. It can be reopened simply by adding a new update
-  * An update is marked as "pending" by adding (!). Note that this is just a search shortcut, no special meaning except for the "pending" command.
-  * You can define aliases for tasks. Afterwards you can use the alias instead of the task names: ```MyAlias:: your update``` 
+  * A task is marked as "closed" by adding '(CLOSED)' or '(.)' at the end of its update string. It can be reopened simply by adding a new update.
+  * A task is marked as "standby" by adding '(STANDBY)' or '(,)' at the end of its update string. It can be reopened simply by adding a new update.
+  * A task is marked as "pending" if it contains an update with '(!)'.
+  * You can define aliases for tasks. Afterward you can use the alias instead of the task names: ```MyAlias:: your update``` 
     * An alias definition line begins with the alias name in square bracket followed by the full task (or subtask) name. For example: `[MyAlias] Cooking:: Bake a Cake::` 
     * An alias definition can be decorated with:
       * a URL to be linked with every update for this (sub)task.

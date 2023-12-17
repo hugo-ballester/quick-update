@@ -8,7 +8,6 @@ from reports import BULLET, BULLET2
 BULLET_MARKDOWN = "* "
 BULLET_MARKDOWN_SLACK = "- "
 
-
 class Renderer_md():
     def __init__(self, markdown_type="slack"):
         self.buffer = ""
