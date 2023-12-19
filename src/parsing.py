@@ -1,7 +1,10 @@
 import re
 import pandas as pd
 from datetime import datetime
+
+import renderer
 from utils import myassert, debug
+
 
 TASK_SEPARATOR_INPUT = "::"  # TODO parametrise
 DONE_KEYWORDS = ["(CLOSED)", "(.)"]
@@ -88,6 +91,10 @@ def parse_line(line, aliases, urls, postfixes, order):
     :return: None or  (task, update, done)
     '''
     # PARSE
+
+    ## shortcuts:
+    line = re.sub(r"^([a-zA-Z]+):+ +", r"\1:: ", line)
+
     alias = alias_rex.search(line)
     if alias:
         d = alias.groupdict()
@@ -237,8 +244,7 @@ def parse_file(string):
     df = pd.DataFrame(data, columns=["Date", "Task", "Update", "Done"])
     df.Date = pd.to_datetime(df.Date)
 
-    # Set pending state
-
+    # Set "pending" state
     pending_tasks = df[df.Update.str.contains(re.escape("(!)"))].Task.to_list()
     df.loc[df.Task.isin(pending_tasks), "Done"] = "PENDING"
 
@@ -251,6 +257,14 @@ def parse_file(string):
         order[task] + task if task in order else task for task in df.Task.tolist()
     ]
     df["URL"] = [urls[task] if task in urls else "" for task in df.Task.tolist()]
+
+
+    # Check unused Task aliases
+    used_tasks = set(df.Key.tolist())
+    unused_aliases = [alias for alias in aliases if alias not in used_tasks]
+    if unused_aliases:
+        print("WARNING: UNUSED ALIASES: [" + ", ".join(unused_aliases)+"]")
+
 
 
     return df, todos, postfixes, date_ascending, aliases

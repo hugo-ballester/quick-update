@@ -105,9 +105,7 @@ def report1(
 # ------------------------------------------------------------------------------------------------------------
 
 def report_tasks_at_state(df, postfixes, state, today):
-    print("==="+ state if state else "NONE")
     df = completion_tasks(df, state, today)
-    print(set(df.Task.to_list()))
     df = df[["Task", "Key", "Order"]]
     df = df.drop_duplicates().sort_values("Order")
     ret = ""
@@ -115,7 +113,7 @@ def report_tasks_at_state(df, postfixes, state, today):
         k = f"[{row.Key}]" if row.Key else ""
         k = f"{k:10s}"
         postfixes = f"POSTFIX '{postfixes[row.Task]}'" if row.Task in postfixes else ""
-        ret += f"{k}\t{row.Task}\t{postfixes}\n"
+        ret += f"{k}\t{row.Task}\n"
     return ret
 
 

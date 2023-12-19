@@ -54,8 +54,8 @@ write anything here, won't be parsed until a new ###+ line is found
 ###
 
 #2020-01-01
-XFP:: discussed with Phoebe
-XFP:: drew data flow diagrams
+XFP: discussed with Phoebe
+XFP: drew data flow diagrams
 XFP:: Legal:: cleared with legal (DONE)
 Project-X:: Recruiting:: contacted 20 canidates
 
@@ -145,7 +145,7 @@ qu week
   * A task is marked as "closed" by adding '(CLOSED)' or '(.)' at the end of its update string. It can be reopened simply by adding a new update.
   * A task is marked as "standby" by adding '(STANDBY)' or '(,)' at the end of its update string. It can be reopened simply by adding a new update.
   * A task is marked as "pending" if it contains an update with '(!)'.
-  * You can define aliases for tasks. Afterward you can use the alias instead of the task names: ```MyAlias:: your update``` 
+  * You can define aliases for tasks. Afterward you can use the alias instead of the task names: ```MyAlias: your update``` 
     * An alias definition line begins with the alias name in square bracket followed by the full task (or subtask) name. For example: `[MyAlias] Cooking:: Bake a Cake::` 
     * An alias definition can be decorated with:
       * a URL to be linked with every update for this (sub)task.
