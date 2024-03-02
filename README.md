@@ -45,8 +45,8 @@ Another example using more features:
 [XFP] Project-X:: First Proposal::
 [11]  Management:: 1:1s:: POSFIX<(DONE)> ORDER<zzz>
 
-### scrap block
-start a scrap block with three or more #,
+### coment block
+start a comment block with three or more #,
 write anything here, won't be parsed until a new ###+ line is found
  
 # blah
