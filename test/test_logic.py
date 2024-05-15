@@ -1,6 +1,6 @@
 import pytest
-from quick_update import *
 
+from src.parsing import parse_file
 
 @pytest.mark.parametrize(
     "file_content, des_task_order",

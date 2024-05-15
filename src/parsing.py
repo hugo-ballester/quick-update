@@ -178,7 +178,7 @@ def parse_file(string):
                 ):
                     myassert(
                         False,
-                        f"PARSE ERROR (LINE: {linenum}) Dates can be incremental or decremental but not both!",
+                        f"PARSE ERROR (LINE: {linenum}) Dates can be incremental or decremental but not both!\nLINE: {line}",
                     )
                 old_date = date_m
 
@@ -196,7 +196,7 @@ def parse_file(string):
         if doclines_on:
             continue
 
-        if line.startswith("#TODO"):
+        if re.match(r'^#?TODO', line):
             todos.append(line)
             continue
 
@@ -217,7 +217,7 @@ def parse_file(string):
             if update:
                 myassert(
                     date,
-                    f"PARSE ERROR (LINE: {linenum}) No date line present before the first update!",
+                    f"PARSE ERROR (LINE: {linenum}) No date line present before the first update!\nLINE: |{line}|"
                 )
 
             data.append([date, task, update, done])

@@ -88,7 +88,7 @@ _now = datetime.now()
 def main():
     commands_list = ["o[pen]", "pending", "standby", "closed", "y[esterday]", "today", "thisweek", "[last]week",
                      "<k>w[eeks]",
-                     "span <date-start> <date-end>", "tasks", "todo"]
+                     "span <date-start> <date-end>", "tasks", "tr/tasks_recent", "todo"]
 
     ap = argparse.ArgumentParser(
         description=f"QuickUpdate {version_name}: https://github.com/hugozaragoza/quick-update")
@@ -224,6 +224,9 @@ def main():
 
         elif command == "tasks":
             renderer.printAndCopy(reports.report_tasks(df, postfixes, _now), "TASKS")
+
+        elif command == "tasks_recent" or command=="tr":
+            renderer.printAndCopy(reports.report_tasks(df, postfixes, _now, 10), "TASKS")
 
         elif command == "todo":
             renderer.printAndCopy("\n".join(todos), "TODO")

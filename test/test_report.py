@@ -1,6 +1,5 @@
-import reports
-import reporttree
-from quick_update import parse_file
+from src import reports, reporttree
+from src.parsing import parse_file
 
 bold = "\x1b[1m"
 endbold = "\x1b[0m"

@@ -104,8 +104,8 @@ def report1(
 # REPORTS:
 # ------------------------------------------------------------------------------------------------------------
 
-def report_tasks_at_state(df, postfixes, state, today):
-    df = completion_tasks(df, state, today)
+def report_tasks_at_state(df, postfixes, state, today, most_recent=False):
+    df = completion_tasks(df, state, today, most_recent)
     df = df[["Task", "Key", "Order"]]
     df = df.drop_duplicates().sort_values("Order")
     ret = ""
@@ -117,12 +117,15 @@ def report_tasks_at_state(df, postfixes, state, today):
     return ret
 
 
-def report_tasks(df, postfixes, today):
+def report_tasks(df, postfixes, today, most_recent=False):
     ret = ""
-    states = {"PENDING":"PENDING","OPEN":None,"STANDBY":"STANDBY","CLOSED":"DONE"}
-    for state in states:
-        tmp = report_tasks_at_state(df, postfixes, states[state], today)
-        ret += "\n  * "+state+":\n" + tmp
+    if most_recent:
+        ret = report_tasks_at_state(df, postfixes, None, today, most_recent)
+    else:
+        states = {"PENDING":"PENDING","OPEN":None,"STANDBY":"STANDBY","CLOSED":"DONE"}
+        for state in states:
+            tmp = report_tasks_at_state(df, postfixes, states[state], today, most_recent)
+            ret += "\n  * "+state+":\n" + tmp
     return ret
 
 
@@ -263,12 +266,16 @@ def end_dates(data):
     return completion_tasks(data, "DONE", today=_now)
 
 
-def completion_tasks(data, completion_value, today=None):
+def completion_tasks(data, completion_value, today=None, most_recent=False):
     df = data
     if today:
         df = df[(df.Date <= today)]
     df = df.sort_values(by=["Date"]).groupby(["Task"]).tail(1)
     if completion_value is None:
-        return df[df.Done.isnull()]
+        df = df[df.Done.isnull()]
     else:
-        return df[(df.Done == completion_value)]
+        df = df[(df.Done == completion_value)]
+    df = df.sort_values("Date", ascending=False)
+    if most_recent:
+        df = df.head(most_recent)
+    return df

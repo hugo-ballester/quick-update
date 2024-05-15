@@ -1,7 +1,7 @@
 import pytest
 
-from renderer import Renderer_md
-from reports import BULLET
+from src.renderer import Renderer_md
+from src.reports import BULLET
 
 bullet1 = Renderer_md(markdown_type="standard").md_BULLET
 bullet2 = Renderer_md(markdown_type="slack").md_BULLET

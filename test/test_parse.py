@@ -1,7 +1,8 @@
 from datetime import datetime
 import pytest
 
-from reports import *
+from src.parsing import task_join_internal, parse_file, parse_line
+from src.reports import completion_tasks
 
 
 @pytest.mark.parametrize(
@@ -120,7 +121,7 @@ def test_parse_alias_expressions(line, des_alias, des_urls, des_posfix, des_orde
 def test_parse_date(file_content, des_date):
     df, _, _, _, _ = parse_file(file_content)
     assert 1 == df.shape[0]
-    assert df.iloc[0]["Date"] == datetime.strptime(des_date, '%Y-%m-%d').date()
+    assert df.iloc[0]["Date"] == datetime.strptime(des_date, '%Y-%m-%d')
 
 
 @pytest.mark.parametrize(
