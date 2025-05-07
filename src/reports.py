@@ -8,11 +8,12 @@ from reporttree import tree
 from utils import date_string
 
 # ------------------------------------------------------------------------------------------------------------
-# GOBAL
+# GOBAL RENDER # todo, move lists to renderer
 # ------------------------------------------------------------------------------------------------------------
-BULLET = "  _*_ "  # todo, move lists to renderer ◯◦
-BULLET2 = "  _o_ "  # todo, move lists to renderer ◯◦
-
+BULLET = "  _*_ "
+BULLET2 = "  _o_ "
+def bold(txt):
+    return '\033[1m' + txt+'\033[0m'
 
 # ------------------------------------------------------------------------------------------------------------
 # REPORT FORMATTING:
@@ -45,7 +46,7 @@ def format_line(
         key = f"{key:7}"
     else:
         key = ""
-    task = f"{task_display(task, url):30}\t" if task else ""
+    task = f"{bold(task_display(task, url)):30}\t" if task else ""
     ds = ''
     if date:
         ds = '(' + date_string(date) + ')'

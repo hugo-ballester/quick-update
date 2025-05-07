@@ -7,11 +7,14 @@ see README.md for usage documentation
 
 """
 import argparse
+import glob
 import os
 import shutil
+import sys
 from datetime import datetime
 
 import pandas as pd
+from loguru import logger
 
 import renderer
 import reports
@@ -86,12 +89,22 @@ _now = datetime.now()
 
 
 def main():
+
+    with open('README.md', 'r') as file:
+        readme_content = file.read()
+
+
+#    print(readme_content)
+#    sys.exit()
+
     commands_list = ["o[pen]", "pending", "standby", "closed", "y[esterday]", "today", "thisweek", "[last]week",
                      "<k>w[eeks]",
                      "span <date-start> <date-end>", "tasks", "tr/tasks_recent", "todo"]
 
     ap = argparse.ArgumentParser(
-        description=f"QuickUpdate {version_name}: https://github.com/hugozaragoza/quick-update")
+        description=f"QuickUpdate {version_name}: https://github.com/hugozaragoza/quick-update\n\n"+readme_content,
+        formatter_class=argparse.RawTextHelpFormatter
+        )
 
     ap.add_argument(
         "commands",
@@ -105,7 +118,7 @@ def main():
         "--update_file",
         required=True,
         default=None,
-        help="Update file",
+        help="Update file or file pattern (date order should be consistent)",
     )
     ap.add_argument(
         "--now",
@@ -123,7 +136,7 @@ def main():
         help="Filter to any task or update containing this substring",
     )
     args = vars(ap.parse_args())
-    file = args["update_file"]
+    files = args["update_file"]
 
     if (args['now']):
         global _now
@@ -131,16 +144,20 @@ def main():
         print("WARNING: NOW is set to " + str(_now))
 
     if "edit" in args["commands"]:
-        add_date_to_file(file, _now)
-        os.system(f"open {file}")
+        add_date_to_file(files, _now)
+        os.system(f"open {files}")
         args["commands"].remove("edit")
 
     if len(args["commands"]) == 0:
         return
 
-    with open(file, "r") as _file:
-        file_content = _file.read()
-        df, todos, postfixes, date_ascending, aliases = parse_file(file_content)
+    print(f"FILES: {files}")
+    file_content = ''
+    for filename in sorted(glob.glob(files),reverse=True):
+        print(f"  FILES: {filename}")
+        with open(filename, "r") as _file:
+            file_content += _file.read()+"\n"
+    df, todos, postfixes, date_ascending, aliases = parse_file(file_content)
 
     if args['task']:
         task = args['task']

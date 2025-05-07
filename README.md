@@ -152,7 +152,10 @@ qu week
       * a posfix string (to be added to every update of this task)
       * an order prefix (prefix to be used when sorting alphabetically)
       * Example: `[MyAlias] Cooking:: Bake a Cake:: http://bake_a_cake.com POSFIX<(DONE)> ORDER<zzz>`    
-  * Any lines starting with #TODO are stored in batch and can be reported.
+  * Special lines:
+    * TODO lines: Any lines starting with #TODO are stored in batch and can be reported.
+    * Comment lines: Any lines starting with # are ignored
+    * Comment Blocks: ### starts a comment block until another ### line is reached
   
 
 ### MISC:
