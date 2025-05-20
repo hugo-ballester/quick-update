@@ -88,6 +88,11 @@ def add_date_to_file(file, now):
 _now = datetime.now()
 
 
+def error_and_quit(txt):
+    print(txt)
+    sys.exit(1)
+
+
 def main():
 
     with open('README.md', 'r') as file:
@@ -153,8 +158,12 @@ def main():
 
     print(f"FILES: {files}")
     file_content = ''
-    for filename in sorted(glob.glob(files),reverse=True):
-        print(f"  FILES: {filename}")
+    files_matched = sorted(glob.glob(files),reverse=True)
+    if not files_matched:
+        error_and_quit(f"\nNo files found of: {files}")
+
+    for filename in files_matched:
+        # print(f"  FILES: {filename}")
         with open(filename, "r") as _file:
             file_content += _file.read()+"\n"
     df, todos, postfixes, date_ascending, aliases = parse_file(file_content)
